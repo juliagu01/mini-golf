@@ -11,6 +11,17 @@ const renderer = new THREE.WebGLRenderer();
 renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
 
+// Create a separate scene and camera for UI elements, using an orthographic camera
+const uiScene = new THREE.Scene();
+const uiCamera = new THREE.OrthographicCamera(
+    -window.innerWidth / 2, window.innerWidth / 2,
+    window.innerHeight / 2, -window.innerHeight / 2,
+    0.1, 10
+);
+
+uiCamera.position.z = 1; // Move it slightly along the z-axis to ensure it's not exactly at the origin
+uiCamera.lookAt(0, 0, 0); // Ensure the camera is looking at the origin
+
 const controls = new OrbitControls(camera, renderer.domElement);
 camera.position.set(0, 5, 10);
 controls.target.set(0, 5, 0);
@@ -142,6 +153,25 @@ front_wall.matrixAutoUpdate = false;
 front_wall.matrix.premultiply(translationMatrix(0, 0, 600));
 scene.add(front_wall);
 
+// Create the power bar geometry and material
+const powerBarGeometry = new THREE.PlaneGeometry(150, 20); // Width and height of the bar
+const powerBarMaterial = new THREE.MeshBasicMaterial({color: 0xff0000});
+const powerBarMesh = new THREE.Mesh(powerBarGeometry, powerBarMaterial);
+uiScene.add(powerBarMesh);
+
+// Position the power bar in the top-right corner
+powerBarMesh.position.set(window.innerWidth / 2 - 100, window.innerHeight / 2 - 30, 0); // Position slightly inside from the edge
+
+// // Resize listener for responsive positioning
+// window.addEventListener('resize', () => {
+//     uiCamera.left = -window.innerWidth / 2;
+//     uiCamera.right = window.innerWidth / 2;
+//     uiCamera.top = window.innerHeight / 2;
+//     uiCamera.bottom = -window.innerHeight / 2;
+//     uiCamera.updateProjectionMatrix();
+//     updatePowerBarPosition();
+// });
+
 //Physics Properties
 const ballVelocity = new THREE.Vector3(0, 0, 0);
 
@@ -157,26 +187,27 @@ const ballVelocity = new THREE.Vector3(0, 0, 0);
       ballVelocity.y *= -0.8; // Bounce with energy loss
     }
   }
+
   let isHitting = false;
-  let powerBar = 0;
+  let powerBar = 0;  //0-10
   window.addEventListener('keydown', (event) => {
+    console.log("space down");
     if (event.code === 'Space'){
     isHitting = true;
     }
 });
   window.addEventListener('keyup', (event) => {
     if (event.code === 'Space') {
+      console.log("space up");
       isHitting = false;
+      powerBar = 0;
       // Calculate the direction vector from the camera to the ball
       const direction = new THREE.Vector3();
       direction.subVectors(ball.position, camera.position).normalize();
   
       ballVelocity.addScaledVector(direction, powerBar); 
-      powerBar = 0;
     }
   });
-
-
 
 
 let animation_time = 0;
@@ -186,16 +217,26 @@ const clock = new THREE.Clock();
 function animate() {
     requestAnimationFrame(animate);
     
+    let elapsedTime = clock.getElapsedTime();
 
     delta_animation_time = clock.getDelta();
     animation_time += delta_animation_time;
 
     let transformation = new THREE.Matrix4();
     ball.matrix = transformation.clone();
-    if (isHitting) {
-        powerBar += 0.1; // Adjust the power increase rate as needed
-        powerBar = Math.min(powerBar, 10); // Cap the maximum power
-    }
+    
+let period10 = elapsedTime % 10.0;
+let normalized_period = period10/10;
+if (isHitting) {
+    powerBar =  (period10/10 < 5 ? normalized_period : (1-normalized_period))// Adjust the power increase rate as needed
+    console.log(period10);
+    
+    //calculate color of gradient
+    const red = Math.floor(255 * (1 - powerBar));
+    const green = Math.floor(255 * powerBar);
+    powerBarMaterial.color.set(`rgb(${red},${green},0)`);
+}
+
     ballVelocity.y -= 0.01;
 
     ballVelocity.multiplyScalar(0.99);
@@ -205,8 +246,13 @@ function animate() {
   
     // Check for floor collision
     checkFloorCollision();
-    
+
     controls.update();
     renderer.render(scene, camera);
+
+    // Render the UI scene with its own orthographic camera
+    renderer.autoClear = false;
+    renderer.clearDepth(); // Clear depth buffer to prevent UI from being obscured by 3D scene
+    renderer.render(uiScene, uiCamera);
 }
 renderer.setAnimationLoop(animate);
