@@ -142,19 +142,71 @@ front_wall.matrixAutoUpdate = false;
 front_wall.matrix.premultiply(translationMatrix(0, 0, 600));
 scene.add(front_wall);
 
+//Physics Properties
+const ballVelocity = new THREE.Vector3(0, 0, 0);
+
+  // Function to apply a force to the ball
+  function applyForce(force) {
+    ballVelocity.add(force);
+  }
+  
+  // Function to handle collisions with the floor
+  function checkFloorCollision() {
+    if (ball.position.y <= 0) {
+      ball.position.y = 0;
+      ballVelocity.y *= -0.8; // Bounce with energy loss
+    }
+  }
+  let isHitting = false;
+  let powerBar = 0;
+  window.addEventListener('keydown', (event) => {
+    if (event.code === 'Space'){
+    isHitting = true;
+    }
+});
+  window.addEventListener('keyup', (event) => {
+    if (event.code === 'Space') {
+      isHitting = false;
+      // Calculate the direction vector from the camera to the ball
+      const direction = new THREE.Vector3();
+      direction.subVectors(ball.position, camera.position).normalize();
+  
+      ballVelocity.addScaledVector(direction, powerBar); 
+      powerBar = 0;
+    }
+  });
+
+
+
 
 let animation_time = 0;
 let delta_animation_time;
 const clock = new THREE.Clock();
 
 function animate() {
-    renderer.render(scene, camera);
-    controls.update();
+    requestAnimationFrame(animate);
+    
 
     delta_animation_time = clock.getDelta();
     animation_time += delta_animation_time;
 
     let transformation = new THREE.Matrix4();
     ball.matrix = transformation.clone();
+    if (isHitting) {
+        powerBar += 0.1; // Adjust the power increase rate as needed
+        powerBar = Math.min(powerBar, 10); // Cap the maximum power
+    }
+    ballVelocity.y -= 0.01;
+
+    ballVelocity.multiplyScalar(0.99);
+
+    // Update ball position based on velocity
+    ball.position.add(ballVelocity);
+  
+    // Check for floor collision
+    checkFloorCollision();
+    
+    controls.update();
+    renderer.render(scene, camera);
 }
 renderer.setAnimationLoop(animate);
