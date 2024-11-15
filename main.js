@@ -31,13 +31,6 @@ controls.enabled = true;
 controls.minDistance = 10;
 controls.maxDistance = 50;
 
-// Create a separate scene and camera for UI elements, using an orthographic camera
-const uiScene = new THREE.Scene();
-const uiCamera = new THREE.OrthographicCamera(
-    -window.innerWidth / 2, window.innerWidth / 2,
-    window.innerHeight / 2, -window.innerHeight / 2,
-    0.1, 10
-);
 
 // Object modeling helper functions
 function createTableWithHole(holeX, holeY) {
@@ -141,6 +134,13 @@ floor.position.y = -400;
 scene.add(floor);
 
 
+// Create a separate scene and camera for UI elements, using an orthographic camera
+const uiScene = new THREE.Scene();
+const uiCamera = new THREE.OrthographicCamera(
+    -window.innerWidth / 2, window.innerWidth / 2,
+    window.innerHeight / 2, -window.innerHeight / 2,
+    0.1, 10
+);
 // Create the power bar geometry and material
 const powerBarGeometry = new THREE.PlaneGeometry(150, 20); // Width and height of the bar
 const powerBarMaterial = new THREE.MeshBasicMaterial({color: 0xff0000});
@@ -148,7 +148,10 @@ const powerBarMesh = new THREE.Mesh(powerBarGeometry, powerBarMaterial);
 uiScene.add(powerBarMesh);
 
 // Position the power bar in the top-right corner
-powerBarMesh.position.set(window.innerWidth / 2 - 100, window.innerHeight / 2 - 30, 0); // Position slightly inside from the edge
+powerBarMesh.position.set(window.innerWidth / 2 - 100, window.innerHeight / 2 - 30, -0.1); // Position slightly inside from the edge
+// //Debug command to see if powerbar is created
+// console.log(uiScene.children)
+
 
 // // Resize listener for responsive positioning
 // window.addEventListener('resize', () => {
