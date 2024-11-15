@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { distance } from 'three/webgpu';
 
 const scene = new THREE.Scene();
 
@@ -43,9 +44,10 @@ function createTableWithHole(holeX, holeY) {
     ]);
 
     const holeShape = new THREE.Shape();
-    holeShape.absellipse(holeX, holeY, 1.25, 1.25, 0, 2 * Math.PI);
+    const holeRadius = 1.25;
+    holeShape.absellipse(holeX, holeY, holeRadius, holeRadius, 0, 2 * Math.PI);
     tableShape.holes.push(holeShape);
-
+    
     return new THREE.ExtrudeGeometry(tableShape, { depth: 1, bevelEnabled: false });
 }
 
@@ -98,7 +100,10 @@ const edgeMaterial = new THREE.MeshPhongMaterial({ color: 0x806040, shininess: 1
 let ball = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 16), ballMaterial);
 scene.add(ball);
 
-let table = new THREE.Mesh(createTableWithHole(0, -10), tableMaterial);
+let holeX = 0;
+let holeY = -10;
+const holeCenter = new THREE.Vector3(holeX, -1, holeY); //moved this here because holeCenter is accessed in animate()
+let table = new THREE.Mesh(createTableWithHole(holeX, holeY), tableMaterial);
 table.position.y = -1;
 table.rotateX(Math.PI/2);
 scene.add(table);
@@ -196,7 +201,7 @@ window.addEventListener('keyup', (event) => {
       const direction = new THREE.Vector3();
       direction.subVectors(ball.position, camera.position).normalize();
   
-      ballVelocity.addScaledVector(direction, 0.5); 
+      ballVelocity.addScaledVector(direction, 0.1); 
     }
   });
 
@@ -221,7 +226,7 @@ function animate() {
     let normalized_period = period10/10;
     if (isHitting) {
         powerBar =  (period10/10 < 5 ? normalized_period : (1-normalized_period))// Adjust the power increase rate as needed
-        console.log(period10);
+        //console.log(period10);
     
     //calculate color of gradient
         const red = Math.floor(255 * (1 - powerBar));
@@ -273,6 +278,11 @@ function animate() {
         ballVelocity.reflect(reflectionPlane.normal);
     }
     */
+    //ball in hole logic
+    if(ball.position.distanceTo(holeCenter) <= 1.5) { //1.5 is hole radiuss
+        ball.visible = false;
+        ballVelocity.set(0,0,0);
+    }
 
     controls.target.copy(ball.position);
     controls.update();
