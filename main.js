@@ -1,33 +1,16 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 const scene = new THREE.Scene();
 
-//THREE.PerspectiveCamera( fov angle, aspect ratio, near depth, far depth );
-const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+const camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, 0.1, 1000 );
+camera.position.set(0, 10, 20);
+camera.lookAt(0, 0, 0);
 
-const renderer = new THREE.WebGLRenderer();
+const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
 
-// Create a separate scene and camera for UI elements, using an orthographic camera
-const uiScene = new THREE.Scene();
-const uiCamera = new THREE.OrthographicCamera(
-    -window.innerWidth / 2, window.innerWidth / 2,
-    window.innerHeight / 2, -window.innerHeight / 2,
-    0.1, 10
-);
-
-uiCamera.position.z = 1; // Move it slightly along the z-axis to ensure it's not exactly at the origin
-uiCamera.lookAt(0, 0, 0); // Ensure the camera is looking at the origin
-
-const controls = new OrbitControls(camera, renderer.domElement);
-camera.position.set(0, 5, 10);
-controls.target.set(0, 5, 0);
-
-
-// Setting up the lights
 const pointLight = new THREE.PointLight(0xffffff, 100, 100);
 pointLight.position.set(5, 5, 5); // Position the light
 scene.add(pointLight);
@@ -39,42 +22,61 @@ scene.add(directionalLight);
 const ambientLight = new THREE.AmbientLight(0x505050);  // Soft white light
 scene.add(ambientLight);
 
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableZoom = false; // Disable zooming
+controls.enablePan = false; // Disable panning
+controls.autoRotate = false;
+controls.target.set(0, 0, 0);
+controls.enabled = true;
+controls.minDistance = 10;
+controls.maxDistance = 50;
 
-// Transformation matrices
 function translationMatrix(tx, ty, tz) {
+	return new THREE.Matrix4().set(
+		1, 0, 0, tx,
+		0, 1, 0, ty,
+		0, 0, 1, tz,
+		0, 0, 0, 1
+	);
+}
+
+function rotationMatrixX(theta) {
     return new THREE.Matrix4().set(
-        1, 0, 0, tx,
-        0, 1, 0, ty,
-        0, 0, 1, tz,
+        1, 0, 0, 0,
+        0, Math.cos(theta), -Math.sin(theta), 0,
+        0, Math.sin(theta), Math.cos(theta), 0,
         0, 0, 0, 1
     );
 }
-function rotationMatrixZ(theta) {
+
+function rotationMatrixY(theta) {
     return new THREE.Matrix4().set(
-        Math.cos(theta), -Math.sin(theta), 0, 0,
-        Math.sin(theta),  Math.cos(theta), 0, 0,
-                      0,                0, 1, 0,
-                      0,                0, 0, 1
-    );
-}
-function rotationMatrixX(theta) {
-    return new THREE.Matrix4().set(
-        1,               0,                0, 0,
-        0, Math.cos(theta), -Math.sin(theta), 0,
-        0, Math.sin(theta),  Math.cos(theta), 0,
-        0,               0,                0, 1
-    );
-}
-function scalingMatrix(sx, sy, sz) {
-    return new THREE.Matrix4().set(
-        sx,  0,  0, 0,
-         0, sy,  0, 0,
-         0,  0, sz, 0,
-         0,  0,  0, 1
+        Math.cos(theta), 0, Math.sin(theta), 0,
+        0, 1, 0, 0,
+        -Math.sin(theta), 0, Math.cos(theta), 0,
+        0, 0, 0, 1
     );
 }
 
+function rotationMatrixZ(theta) {
+	return new THREE.Matrix4().set(
+		Math.cos(theta), -Math.sin(theta), 0, 0,
+		Math.sin(theta),  Math.cos(theta), 0, 0,
+		0, 0, 1, 0,
+		0, 0, 0, 1
+	);
+}
+
+// Create a separate scene and camera for UI elements, using an orthographic camera
+const uiScene = new THREE.Scene();
+const uiCamera = new THREE.OrthographicCamera(
+    -window.innerWidth / 2, window.innerWidth / 2,
+    window.innerHeight / 2, -window.innerHeight / 2,
+    0.1, 10
+);
+
 // Creating objects
+
 const ball_geometry = new THREE.SphereGeometry(1, 16, 16);
 const side_wall_geometry = new THREE.BoxGeometry(1, 800, 1200);
 const non_side_wall_geometry = new THREE.BoxGeometry(800, 800, 1);
@@ -104,13 +106,13 @@ const wall_material = new THREE.MeshPhongMaterial({ color: 0x404040, shininess: 
 const edge_material = new THREE.MeshPhongMaterial({ color: 0x806040, shininess: 100 });
 
 let ball = new THREE.Mesh(ball_geometry, ball_material);
-ball.matrixAutoUpdate = false;
+//ball.matrixAutoUpdate = false;
 scene.add(ball);
 
 let table = new THREE.Mesh(table_geometry, table_material);
 table.matrixAutoUpdate = false;
 table.matrix.premultiply(rotationMatrixX(Math.PI/2));
-table.matrix.premultiply(translationMatrix(0, -1.5, 0));
+table.matrix.premultiply(translationMatrix(0, -1, 0));
 scene.add(table);
 
 let left_edge = new THREE.Mesh(side_edge_geometry, edge_material);
@@ -176,27 +178,27 @@ powerBarMesh.position.set(window.innerWidth / 2 - 100, window.innerHeight / 2 - 
 const ballVelocity = new THREE.Vector3(0, 0, 0);
 
   // Function to apply a force to the ball
-  function applyForce(force) {
+function applyForce(force) {
     ballVelocity.add(force);
   }
   
   // Function to handle collisions with the floor
-  function checkFloorCollision() {
+function checkFloorCollision() {
     if (ball.position.y <= 0) {
       ball.position.y = 0;
       ballVelocity.y *= -0.8; // Bounce with energy loss
     }
   }
 
-  let isHitting = false;
-  let powerBar = 0;  //0-10
-  window.addEventListener('keydown', (event) => {
+let isHitting = false;
+let powerBar = 0;  //0-10
+window.addEventListener('keydown', (event) => {
     console.log("space down");
     if (event.code === 'Space'){
     isHitting = true;
     }
 });
-  window.addEventListener('keyup', (event) => {
+window.addEventListener('keyup', (event) => {
     if (event.code === 'Space') {
       console.log("space up");
       isHitting = false;
@@ -205,7 +207,7 @@ const ballVelocity = new THREE.Vector3(0, 0, 0);
       const direction = new THREE.Vector3();
       direction.subVectors(ball.position, camera.position).normalize();
   
-      ballVelocity.addScaledVector(direction, powerBar); 
+      ballVelocity.addScaledVector(direction, 0.5); 
     }
   });
 
@@ -225,17 +227,17 @@ function animate() {
     let transformation = new THREE.Matrix4();
     ball.matrix = transformation.clone();
     
-let period10 = elapsedTime % 10.0;
-let normalized_period = period10/10;
-if (isHitting) {
-    powerBar =  (period10/10 < 5 ? normalized_period : (1-normalized_period))// Adjust the power increase rate as needed
-    console.log(period10);
+    let period10 = elapsedTime % 10.0;
+    let normalized_period = period10/10;
+    if (isHitting) {
+        powerBar =  (period10/10 < 5 ? normalized_period : (1-normalized_period))// Adjust the power increase rate as needed
+        console.log(period10);
     
     //calculate color of gradient
-    const red = Math.floor(255 * (1 - powerBar));
-    const green = Math.floor(255 * powerBar);
-    powerBarMaterial.color.set(`rgb(${red},${green},0)`);
-}
+        const red = Math.floor(255 * (1 - powerBar));
+        const green = Math.floor(255 * powerBar);
+        powerBarMaterial.color.set(`rgb(${red},${green},0)`);
+    }
 
     ballVelocity.y -= 0.01;
 
@@ -246,7 +248,7 @@ if (isHitting) {
   
     // Check for floor collision
     checkFloorCollision();
-
+    controls.target.copy(ball.position);
     controls.update();
     renderer.render(scene, camera);
 
@@ -255,4 +257,4 @@ if (isHitting) {
     renderer.clearDepth(); // Clear depth buffer to prevent UI from being obscured by 3D scene
     renderer.render(uiScene, uiCamera);
 }
-renderer.setAnimationLoop(animate);
+animate();
