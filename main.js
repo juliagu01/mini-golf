@@ -27,124 +27,108 @@ const ambientLight = new THREE.AmbientLight(0x505050);  // Soft white light
 scene.add(ambientLight);
 
 
-// Creating objects
-const p_material = new THREE.MeshPhongMaterial({ color: 0x808080 });
-const material = new THREE.MeshPhongMaterial({ color: 0xffffff });
-const red_material = new THREE.MeshPhongMaterial({ color: 0xff0000 });
-
-let p_ball = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), p_material);  // Ball as it was in the previous frame
-scene.add(p_ball);
-
-let ball1 = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), material);  // Ball as it is in the current frame
-ball1.matrixAutoUpdate = false;
-ball1.translateX(3);
-ball1.translateY(3);
-ball1.translateZ(0);
-ball1.updateMatrix();
-ball1.updateMatrixWorld();
-scene.add(ball1);
-
-let ball2 = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), material);  // Ball as it is in an alternate current frame
-ball2.matrixAutoUpdate = false;
-ball2.translateX(1.1);
-ball2.translateY(-2);
-ball2.translateZ(2.5);
-ball2.updateMatrix();
-ball2.updateMatrixWorld();
-scene.add(ball2);
-
-const p_sphere = new THREE.Sphere();  // Spherical bound of p_ball
-p_ball.geometry.computeBoundingSphere();
-p_sphere.copy(p_ball.geometry.boundingSphere).applyMatrix4(p_ball.matrixWorld);
-
-const sphere1 = new THREE.Sphere();  // Bound of ball1
-ball1.geometry.computeBoundingSphere();
-sphere1.copy(ball1.geometry.boundingSphere).applyMatrix4(ball1.matrixWorld);
-
-const sphere2 = new THREE.Sphere();  // Bound of ball2
-ball2.geometry.computeBoundingSphere();
-sphere2.copy(ball2.geometry.boundingSphere).applyMatrix4(ball2.matrixWorld);
-
-const box_specs = [
-    { dims: { w: 1, h: 1, d: 1 }, pos: { x: 1, y: 1, z: 0 } },  // Upper left
-    { dims: { w: 1, h: 1, d: 1 }, pos: { x: -1, y: 2, z: 0 } },  // Upper right
-    { dims: { w: 1, h: 1, d: 1 }, pos: { x: -4, y: -1, z: 0 } },  // Lower left
-    { dims: { w: 1, h: 1, d: 1 }, pos: { x: 0, y: -1.45, z: 0 } },  // Lower center
+// Change me!
+const pastPosition = [0, 0, 2];
+const testPosition = [0, 5, 0];
+const boxSpecs = [
+    { dims: [1.5, 1.5, 1.5], pos: [-1, 2.5, 0] },  // Left
+    { dims: [1.5, 1.5, 1.5], pos: [0, 2, 0.5] },  // Center
 ];
 
-// Create box objects (with associated bound objects!) based on specs array
-let collision_objs = [];
-for (const spec of box_specs) {
-    const box = new THREE.Mesh(new THREE.BoxGeometry(spec.dims.w, spec.dims.h, spec.dims.d), material);
-    box.matrixAutoUpdate = false;
-    box.translateX(spec.pos.x);
-    box.translateY(spec.pos.y);
-    box.translateZ(spec.pos.z);
-    box.updateMatrix();
+
+// Custom ExtrudeGeometry for box bounds (not written by us!)
+// Credit: https://discourse.threejs.org/t/round-edged-box/1402
+function createRoundedBox(width, height, depth, radius0, smoothness) {
+    let shape = new THREE.Shape();
+    let eps = 0.00001;
+    let radius = radius0 - eps;
+    shape.absarc(eps, eps, eps, -Math.PI / 2, -Math.PI, true);
+    shape.absarc(eps, height, eps, Math.PI, Math.PI / 2, true);
+    shape.absarc(width, height, eps, Math.PI / 2, 0, true);
+    shape.absarc(width, eps, eps, 0, -Math.PI / 2, true);
+    let geometry = new THREE.ExtrudeGeometry(shape, {
+        amount: depth - radius0 * 2,
+        bevelEnabled: true,
+        bevelSegments: smoothness * 2,
+        steps: 1,
+        bevelSize: radius,
+        bevelThickness: radius0,
+        curveSegments: smoothness
+    });
+    geometry.center();
+    return geometry;
+}
+
+
+// Creating balls
+const pMaterial = new THREE.MeshPhongMaterial({ color: 0x808080 });
+const material = new THREE.MeshPhongMaterial({ color: 0xffffff });
+const redMaterial = new THREE.MeshPhongMaterial({ color: 0xff0000 });
+
+let pBall = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), pMaterial);  // Ball as it was in the previous frame
+pBall.position.set(...pastPosition);
+pBall.updateMatrixWorld();
+scene.add(pBall);
+
+let updatedBall = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), material);  // Ball to be bounced
+updatedBall.position.set(...testPosition);
+updatedBall.updateMatrixWorld();
+scene.add(updatedBall);
+
+let testBall = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), material);  // Ball as it would be without bounce
+testBall.position.set(...testPosition);
+testBall.updateMatrixWorld();
+scene.add(testBall);
+
+
+// Creating box objects (with associated bound objects!) based on specs array
+let collisionObjs = [];
+for (const spec of boxSpecs) {
+    const box = new THREE.Mesh(new THREE.BoxGeometry(...(spec.dims)), material);
+    box.position.set(...(spec.pos));
     box.updateMatrixWorld();
     scene.add(box);
 
-    const bound = new THREE.Box3();
-    box.geometry.computeBoundingBox();
-    bound.copy(box.geometry.boundingBox).applyMatrix4(box.matrixWorld);
+    const bound = new THREE.Mesh(createRoundedBox(...(spec.dims), 1, 1), material);
+    bound.applyMatrix4(box.matrixWorld);
 
-    collision_objs.push({ box: box, bound: bound });
+    collisionObjs.push({ box: box, bound: bound });
 }
 
-// Helper function for vertices of a Box3 object
-function getBox3Segments(box3) {
-    const max = box3.max;
-    const min = box3.min;
 
-    const vertices = [max,
-        new THREE.Vector3(max.x, max.y, min.z),
-        new THREE.Vector3(max.x, min.y, max.z),
-        new THREE.Vector3(max.x, min.y, min.z),
-        new THREE.Vector3(min.x, max.y, max.z),
-        new THREE.Vector3(min.x, max.y, min.z),
-        new THREE.Vector3(min.x, min.y, max.z),
-        min];  // Organized as two "N" shapes
+// Manual raytracing for box bound collision detection
+// (.raycast() not implemented for BufferGeometries :()
+const ray = new THREE.Ray(pBall.position).lookAt(testBall.position);
+let closestIntersection = null;
+for (const obj of collisionObjs) {
+    const indices = obj.bound.geometry.getAttribute("position").array;
+    for (let i = 0; i < indices.length; i += 9) {
+        const vertices = [];
+        vertices.push(new THREE.Vector3().fromArray(indices, i+0).add(obj.bound.position));
+        vertices.push(new THREE.Vector3().fromArray(indices, i+3).add(obj.bound.position));
+        vertices.push(new THREE.Vector3().fromArray(indices, i + 6).add(obj.bound.position));
 
-    return [
-        { v0: vertices[0], v1: vertices[1] },
-        { v0: vertices[0], v1: vertices[2] },
-        { v0: vertices[0], v1: vertices[4] },
-        { v0: vertices[3], v1: vertices[1] },
-        { v0: vertices[3], v1: vertices[2] },
-        { v0: vertices[3], v1: vertices[7] },
-        { v0: vertices[5], v1: vertices[1] },
-        { v0: vertices[5], v1: vertices[4] },
-        { v0: vertices[5], v1: vertices[7] },
-        { v0: vertices[6], v1: vertices[2] },
-        { v0: vertices[6], v1: vertices[4] },
-        { v0: vertices[6], v1: vertices[7] },
-    ];  // Organized as spokes from four vertices
+        const intersection = new THREE.Vector3();
+        if (ray.intersectTriangle(...vertices, true, intersection)) {
+            const distance = intersection.distanceTo(pBall.position);
+            if (closestIntersection === null || closestIntersection.distance > distance)
+                closestIntersection = { distance: distance, vertices: vertices };
+        }
+    }
 }
 
-// Check if any part of the Box3 intersects with the volume in
-// space that the sphere just moved through. The swept sphere 
-// should resemble a tube with hemispheres at the ends.
-// If intersection, there was a collision!
-function box3IntersectsSweptSphere(p_sphere, sphere, box3) {
-    if (box3.intersectsSphere(sphere))
-        return true;
 
-    const ray = new THREE.Ray(p_sphere.center);  // Axis-box intersection
-    ray.lookAt(sphere.center);
-    if (ray.intersectsBox(box3))
-        return true;
+// Reflecting ball across collision surface on box bound if necessary
+if (closestIntersection !== null) {
+    testBall.material = redMaterial;
+    const reflectionPlane = new THREE.Plane();
+    reflectionPlane.setFromCoplanarPoints(...(closestIntersection.vertices));
 
-    for (const segment of getBox3Segments(box3))  // Tube-edge intersection
-        if (ray.distanceSqToSegment(segment.v0, segment.v1) < sphere.radius * sphere.radius)
-            return true;
+    // Not great, but an offset to compensate for reflecting across non-affine plane
+    const reflectionCompensation = reflectionPlane.normal.clone().setLength(-2 * reflectionPlane.constant);
+    updatedBall.position.reflect(reflectionPlane.normal).add(reflectionCompensation);
 
-    return false;
-}
-
-for (const obj of collision_objs) {
-    if (box3IntersectsSweptSphere(p_sphere, sphere1, obj.bound) ||
-        box3IntersectsSweptSphere(p_sphere, sphere2, obj.bound))
-        obj.box.material = red_material;
+    updatedBall.updateMatrixWorld();
 }
 
 renderer.render(scene, camera);
