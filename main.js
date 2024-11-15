@@ -33,6 +33,14 @@ controls.minDistance = 10;
 controls.maxDistance = 50;
 
 
+// Define materials
+const ballMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
+const tableMaterial = new THREE.MeshPhongMaterial({ color: 0x00ff00, shininess: 100 });
+const wallMaterial = new THREE.MeshPhongMaterial({ color: 0x404040, shininess: 100 });
+const edgeMaterial = new THREE.MeshPhongMaterial({ color: 0x806040, shininess: 100 });
+const boundMaterial = new THREE.MeshBasicMaterial();
+
+
 // Object modeling helper functions
 function createTableWithHole(holeX, holeY) {
     const tableShape = new THREE.Shape();
@@ -84,19 +92,13 @@ function createBoxBound(box, ball) {
         ball.geometry.parameters.radius,
         1
     );
-    let bound = new THREE.Mesh(boundGeometry, ballMaterial);
+    let bound = new THREE.Mesh(boundGeometry, boundMaterial);
     bound.position.copy(box.position);
     boxBounds.push(bound);
-    scene.add(bound);
 }
 
 
 // Create objects
-const ballMaterial = new THREE.MeshPhongMaterial({ color: 0xb0b0b0 });
-const tableMaterial = new THREE.MeshPhongMaterial({ color: 0x00ff00, shininess: 100 });
-const wallMaterial = new THREE.MeshPhongMaterial({ color: 0x404040, shininess: 100 });
-const edgeMaterial = new THREE.MeshPhongMaterial({ color: 0x806040, shininess: 100 });
-
 let ball = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 16), ballMaterial);
 scene.add(ball);
 
@@ -215,7 +217,7 @@ let pastPos = new THREE.Vector3();
 function animate() {
     requestAnimationFrame(animate);
 
-    pastPos = ball.position;
+    pastPos = ball.position.clone();
 
     let elapsedTime = clock.getElapsedTime();
 
@@ -241,10 +243,6 @@ function animate() {
     // Update ball position based on velocity
     ball.position.add(ballVelocity);
 
-    // Check for floor collision
-    checkFloorCollision();
-
-    /*
     // Manual raytracing for collision detection
     const ray = new THREE.Ray(pastPos).lookAt(ball.position);
     let closestIntersection = null;
@@ -259,7 +257,7 @@ function animate() {
             const intersection = new THREE.Vector3();
             if (ray.intersectTriangle(...vertices, true, intersection)) {
                 const distance = intersection.distanceTo(pastPos);
-                if (closestIntersection === null || closestIntersection.distance > distance)
+                if (distance < ballVelocity.length() && (closestIntersection === null || closestIntersection.distance > distance))
                     closestIntersection = { distance: distance, vertices: vertices };
             }
         }
@@ -267,6 +265,7 @@ function animate() {
 
     // Reflect ball out of collision surface if necessary
     if (closestIntersection !== null) {
+        console.log("collision");
         const reflectionPlane = new THREE.Plane();
         reflectionPlane.setFromCoplanarPoints(...(closestIntersection.vertices));
 
@@ -277,7 +276,10 @@ function animate() {
 
         ballVelocity.reflect(reflectionPlane.normal);
     }
-    */
+
+    // Check for floor collision
+    checkFloorCollision();
+
     //ball in hole logic
     if(ball.position.distanceTo(holeCenter) <= 1.5) { //1.5 is hole radiuss
         ball.visible = false;
