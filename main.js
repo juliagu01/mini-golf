@@ -38,7 +38,6 @@ const ballMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
 const tableMaterial = new THREE.MeshPhongMaterial({ color: 0x00ff00, shininess: 100 });
 const wallMaterial = new THREE.MeshPhongMaterial({ color: 0x404040, shininess: 100 });
 const edgeMaterial = new THREE.MeshPhongMaterial({ color: 0x806040, shininess: 100 });
-const boundMaterial = new THREE.MeshBasicMaterial();
 
 
 // Object modeling helper functions
@@ -82,19 +81,27 @@ function createRoundedBox(width, height, depth, radius0, smoothness) {
     return geometry;
 }
 
-// Manage array of box bounds
+// Manage array of boxes and box bounds
 let boxBounds = [];
 function createBoxBound(box, ball) {
-    const boundGeometry = createRoundedBox(
-        box.geometry.parameters.width,
-        box.geometry.parameters.height,
-        box.geometry.parameters.depth,
-        ball.geometry.parameters.radius,
+    const boxParams = box.geometry.parameters;
+    const ballParams = ball.geometry.parameters;
+
+    const simpleBound = new THREE.Box3().setFromCenterAndSize(box.position, new THREE.Vector3(
+        boxParams.width + ballParams.radius * 2,
+        boxParams.height + ballParams.radius * 2,
+        boxParams.depth + ballParams.radius * 2
+    ));
+
+    const bound = createRoundedBox(
+        boxParams.width,
+        boxParams.height,
+        boxParams.depth,
+        ballParams.radius,
         1
-    );
-    let bound = new THREE.Mesh(boundGeometry, boundMaterial);
-    bound.position.copy(box.position);
-    boxBounds.push(bound);
+    ).applyMatrix4(box.matrix);
+
+    boxBounds.push({ box: box, simpleBound: simpleBound, bound: bound });
 }
 
 
@@ -246,19 +253,26 @@ function animate() {
     // Manual raytracing for collision detection
     const ray = new THREE.Ray(pastPos).lookAt(ball.position);
     let closestIntersection = null;
-    for (const bound of boxBounds) {
-        const indices = bound.geometry.getAttribute("position").array;
-        for (let i = 0; i < indices.length; i += 9) {
-            const vertices = [];
-            vertices.push(new THREE.Vector3().fromArray(indices, i + 0).add(bound.position));
-            vertices.push(new THREE.Vector3().fromArray(indices, i + 3).add(bound.position));
-            vertices.push(new THREE.Vector3().fromArray(indices, i + 6).add(bound.position));
+    for (const { box, simpleBound, bound } of boxBounds) {
+        // Check intersection with simple bound
+        const simpleIntersection = new THREE.Vector3();
+        if (ray.intersectBox(simpleBound, simpleIntersection)) {
+            if (simpleIntersection.distanceTo(pastPos) < ballVelocity.length()) {
+                // Check intersection with bound
+                const indices = bound.getAttribute("position").array;
+                for (let i = 0; i < indices.length; i += 9) {
+                    const vertices = [];
+                    vertices.push(new THREE.Vector3().fromArray(indices, i + 0).add(box.position));
+                    vertices.push(new THREE.Vector3().fromArray(indices, i + 3).add(box.position));
+                    vertices.push(new THREE.Vector3().fromArray(indices, i + 6).add(box.position));
 
-            const intersection = new THREE.Vector3();
-            if (ray.intersectTriangle(...vertices, true, intersection)) {
-                const distance = intersection.distanceTo(pastPos);
-                if (distance < ballVelocity.length() && (closestIntersection === null || closestIntersection.distance > distance))
-                    closestIntersection = { distance: distance, vertices: vertices };
+                    const intersection = new THREE.Vector3();
+                    if (ray.intersectTriangle(...vertices, true, intersection)) {
+                        const distance = intersection.distanceTo(pastPos);
+                        if (distance < ballVelocity.length() && (closestIntersection === null || closestIntersection.distance > distance))
+                            closestIntersection = { distance: distance, vertices: vertices };
+                    }
+                }
             }
         }
     }
