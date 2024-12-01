@@ -191,61 +191,42 @@ function checkFloorCollision() {
       ball.position.y = 0;
       ballVelocity.y *= -0.8; // Bounce with energy loss
     }
-  }
+}
 
-let isHitting = false;
-let powerBar = 0;  //0-10
+let power = 0;  // 0-1
+let prepLaunch = true;
+let launchCount = 0;
+// Launch iff space is pressed AND last launch has finished
 window.addEventListener('keydown', (event) => {
-    console.log("space down");
-    if (event.code === 'Space'){
-    isHitting = true;
+    if (event.code === 'Space' && prepLaunch) {
+        launchCount++;
+        console.log(`launch ${launchCount} start`);
+        // Calculate the direction vector from the camera to the ball
+        const direction = new THREE.Vector3();
+        direction.subVectors(ball.position, camera.position).normalize();
+        ballVelocity.addScaledVector(direction, power);
+        prepLaunch = false;
     }
 });
-window.addEventListener('keyup', (event) => {
-    if (event.code === 'Space') {
-      console.log("space up");
-      isHitting = false;
-      powerBar = 0;
-      // Calculate the direction vector from the camera to the ball
-      const direction = new THREE.Vector3();
-      direction.subVectors(ball.position, camera.position).normalize();
-  
-      ballVelocity.addScaledVector(direction, 0.1); 
-    }
-  });
 
 
-let animation_time = 0;
-let delta_animation_time;
 const clock = new THREE.Clock();
-
 let pastPos = new THREE.Vector3();
-
 function animate() {
     requestAnimationFrame(animate);
 
     pastPos = ball.position.clone();
 
-    let elapsedTime = clock.getElapsedTime();
-
-    delta_animation_time = clock.getDelta();
-    animation_time += delta_animation_time;
-    
-    let period10 = elapsedTime % 10.0;
-    let normalized_period = period10/10;
-    if (isHitting) {
-        powerBar =  (period10/10 < 5 ? normalized_period : (1-normalized_period))// Adjust the power increase rate as needed
-        //console.log(period10);
-    
-    //calculate color of gradient
-        const red = Math.floor(255 * (1 - powerBar));
-        const green = Math.floor(255 * powerBar);
+    // Update power bar if waiting to be launched
+    if (prepLaunch) {
+        power = (Math.sin(clock.getElapsedTime()) + 1) / 2;
+        const red = Math.floor(255 * (1 - power));
+        const green = Math.floor(255 * power);
         powerBarMaterial.color.set(`rgb(${red},${green},0)`);
     }
 
-    ballVelocity.y -= 0.01;
-
-    ballVelocity.multiplyScalar(0.99);
+    ballVelocity.y -= 0.01;  // gravity
+    ballVelocity.multiplyScalar(0.95);  // friction
 
     // Update ball position based on velocity
     ball.position.add(ballVelocity);
@@ -298,6 +279,13 @@ function animate() {
     if(ball.position.distanceTo(holeCenter) <= 1.5) { //1.5 is hole radiuss
         ball.visible = false;
         ballVelocity.set(0,0,0);
+    }
+
+    // Determine end of launch (note to self: should check that acceleration is 0 too!!)
+    if (!prepLaunch && ballVelocity.length() < 0.015) {
+        console.log(`launch ${launchCount} end`);
+        ballVelocity.multiplyScalar(0);
+        prepLaunch = true;
     }
 
     controls.target.copy(ball.position);
