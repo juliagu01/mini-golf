@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { distance } from 'three/webgpu';
 
 const scene = new THREE.Scene();
@@ -32,6 +34,13 @@ controls.enabled = true;
 controls.minDistance = 10;
 controls.maxDistance = 50;
 
+let hubFont = null;
+const loader = new FontLoader();
+loader.load('fonts/helvetiker_regular.typeface.json', function (font) {
+    hubFont = font;
+    createHubText();
+});
+
 
 // Define materials
 const ballMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
@@ -41,7 +50,7 @@ const edgeMaterial = new THREE.MeshPhongMaterial({ color: 0x806040, shininess: 1
 
 
 // Object modeling helper functions
-function createTableWithHole(holeX, holeY) {
+function createTableWithHole(holeX, holeY, holeRadius) {
     const tableShape = new THREE.Shape();
     tableShape.setFromPoints([
         new THREE.Vector2(-16, -31),
@@ -51,7 +60,6 @@ function createTableWithHole(holeX, holeY) {
     ]);
 
     const holeShape = new THREE.Shape();
-    const holeRadius = 1.25;
     holeShape.absellipse(holeX, holeY, holeRadius, holeRadius, 0, 2 * Math.PI);
     tableShape.holes.push(holeShape);
     
@@ -111,8 +119,9 @@ scene.add(ball);
 
 let holeX = 0;
 let holeY = -10;
-const holeCenter = new THREE.Vector3(holeX, -1, holeY); //moved this here because holeCenter is accessed in animate()
-let table = new THREE.Mesh(createTableWithHole(holeX, holeY), tableMaterial);
+const holeCenter = new THREE.Vector3(holeX, -1, holeY);
+const holeRadius = 1.25;
+let table = new THREE.Mesh(createTableWithHole(holeX, holeY, holeRadius), tableMaterial);
 table.position.y = -1;
 table.rotateX(Math.PI/2);
 scene.add(table);
@@ -177,13 +186,98 @@ powerBarMesh.position.set(window.innerWidth / 2 - 100, window.innerHeight / 2 - 
 //     updatePowerBarPosition();
 // });
 
-//Physics Properties
+
+// Create text geometry and material
+// Credit: https://github.com/mrdoob/three.js/blob/master/examples/webgl_geometry_text.html
+let textSpecs = [
+    { text: "Level", x: 25 },
+    { text: "Max launches:", x: 125 },
+    { text: "Launches:", x: 300 },
+];
+const textMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+function createHubText() {
+    for (const spec of textSpecs) {
+        const textGeometry = new TextGeometry(spec.text, {
+            font: hubFont,
+            size: 12,
+            depth: -1
+        });
+        const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+        textMesh.position.set(window.innerWidth / -2 + spec.x, window.innerHeight / 2 - 35, -0.1);
+        uiScene.add(textMesh);
+    }
+    updateLevelNumText();
+    updateMaxLaunchCountText();
+    updateLaunchCountText();
+}
+
+
+// Create level number geometry and material
+let level = 1;
+let levelNumMesh = null;
+function updateLevelNumText() {
+    if (levelNumMesh)
+        uiScene.remove(levelNumMesh);
+    if (hubFont) {
+        const levelNumGeometry = new TextGeometry(level + "", {
+            font: hubFont,
+            size: 12,
+            depth: -1
+        });
+        levelNumMesh = new THREE.Mesh(levelNumGeometry, textMaterial);
+        levelNumMesh.position.set(window.innerWidth / -2 + 75, window.innerHeight / 2 - 35, -0.1);
+        uiScene.add(levelNumMesh);
+    }
+}
+
+
+// Create max launch count geometry and material
+const levelSpecs = [
+    { maxLaunches: 3 },
+    { maxLaunches: 3 },
+];
+let maxLaunchCountMesh = null;
+function updateMaxLaunchCountText() {
+    if (maxLaunchCountMesh)
+        uiScene.remove(maxLaunchCountMesh);
+    if (hubFont) {
+        const maxLaunchCountGeometry = new TextGeometry(levelSpecs[level - 1].maxLaunches + "", {
+            font: hubFont,
+            size: 12,
+            depth: -1
+        });
+        maxLaunchCountMesh = new THREE.Mesh(maxLaunchCountGeometry, textMaterial);
+        maxLaunchCountMesh.position.set(window.innerWidth / -2 + 250, window.innerHeight / 2 - 35, -0.1);
+        uiScene.add(maxLaunchCountMesh);
+    }
+}
+
+
+// Create launch count geometry and material
+let launchCountMesh = null;
+function updateLaunchCountText() {
+    if (launchCountMesh)
+        uiScene.remove(launchCountMesh);
+    if (hubFont) {
+        const launchCountGeometry = new TextGeometry(launchCount + "", {
+            font: hubFont,
+            size: 12,
+            depth: -1
+        });
+        launchCountMesh = new THREE.Mesh(launchCountGeometry, textMaterial);
+        launchCountMesh.position.set(window.innerWidth / -2 + 400, window.innerHeight / 2 - 35, -0.1);
+        uiScene.add(launchCountMesh);
+    }
+}
+
+
+// Physics properties
 const ballVelocity = new THREE.Vector3(0, 0, 0);
 
-  // Function to apply a force to the ball
+// Function to apply a force to the ball
 function applyForce(force) {
     ballVelocity.add(force);
-  }
+}
   
   // Function to handle collisions with the floor
 function checkFloorCollision() {
@@ -200,6 +294,7 @@ let launchCount = 0;
 window.addEventListener('keydown', (event) => {
     if (event.code === 'Space' && prepLaunch) {
         launchCount++;
+        updateLaunchCountText();
         console.log(`launch ${launchCount} start`);
         // Calculate the direction vector from the camera to the ball
         const direction = new THREE.Vector3();
@@ -275,17 +370,33 @@ function animate() {
     // Check for floor collision
     checkFloorCollision();
 
-    //ball in hole logic
-    if(ball.position.distanceTo(holeCenter) <= 1.5) { //1.5 is hole radiuss
-        ball.visible = false;
-        ballVelocity.set(0,0,0);
+    // Ball in hole logic
+    if (ball.position.distanceTo(holeCenter) <= holeRadius) {
+        console.log("Level complete");
+        ballVelocity.set(0, 0, 0);
+        if (level < levelSpecs.length) {
+            level++;
+            launchCount = 0;
+            updateLevelNumText();
+            updateMaxLaunchCountText();
+            updateLaunchCountText();
+        }
+        else {
+            ball.visible = false;
+            console.log("All levels complete");
+        }
     }
 
     // Determine end of launch (note to self: should check that acceleration is 0 too!!)
     if (!prepLaunch && ballVelocity.length() < 0.015) {
         console.log(`launch ${launchCount} end`);
-        ballVelocity.multiplyScalar(0);
+        ballVelocity.set(0, 0, 0);
         prepLaunch = true;
+        if (launchCount == levelSpecs[level - 1].maxLaunches) {
+            console.log("Restart level");
+            launchCount = 0;
+            updateLaunchCountText();
+        }
     }
 
     controls.target.copy(ball.position);
