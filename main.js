@@ -208,6 +208,7 @@ let textSpecs = [
     { text: "Level", x: 25 },
     { text: "Max launches:", x: 125 },
     { text: "Launches:", x: 300 },
+    { text: "Extra credit:", x: 450 },
 ];
 const textMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
 function createHubText() {
@@ -224,6 +225,7 @@ function createHubText() {
     updateLevelNumText();
     updateMaxLaunchCountText();
     updateLaunchCountText();
+    updateExtraCreditAmountText();
 }
 
 
@@ -281,6 +283,24 @@ function updateLaunchCountText() {
 }
 
 
+// Create launch count geometry and material
+let extraCreditAmountMesh = null;
+function updateExtraCreditAmountText() {
+    if (extraCreditAmountMesh)
+        uiScene.remove(extraCreditAmountMesh);
+    if (hubFont) {
+        const extraCreditAmountGeometry = new TextGeometry("+" + extraCreditAmount, {
+            font: hubFont,
+            size: 12,
+            depth: -1
+        });
+        extraCreditAmountMesh = new THREE.Mesh(extraCreditAmountGeometry, textMaterial);
+        extraCreditAmountMesh.position.set(window.innerWidth / -2 + 550, window.innerHeight / 2 - 35, -0.1);
+        uiScene.add(extraCreditAmountMesh);
+    }
+}
+
+
 // Physics properties
 const ballVelocity = new THREE.Vector3(0, 0, 0);
 
@@ -300,6 +320,7 @@ function checkFloorCollision() {
 let power = 0;  // 0-1
 let prepLaunch = true;
 let launchCount = 0;
+let extraCreditAmount = 0;
 // Launch iff space is pressed AND last launch has finished
 window.addEventListener('keydown', (event) => {
     if (event.code === 'Space' && prepLaunch) {
@@ -384,6 +405,8 @@ function animate() {
     if (ball.position.distanceTo(holeCenter) <= holeRadius) {
         console.log(`level ${level} complete`);
         ballVelocity.set(0, 0, 0);
+        extraCreditAmount += (levelSpecs[level - 1].maxLaunches - launchCount);
+        updateExtraCreditAmountText();
         if (level < levelSpecs.length) {
             level++;
             loadLevel();
@@ -396,6 +419,7 @@ function animate() {
         else {
             ball.visible = false;
             console.log("all levels complete");
+            return;
         }
     }
 
