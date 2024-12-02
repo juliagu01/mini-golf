@@ -114,14 +114,18 @@ function createBoxBound(box, ball) {
 
 
 // Create objects
+let level = 1;
+const levelSpecs = [
+    { ballPos: [0, 0, 0], holePos: [0, -10], maxLaunches: 3 },
+    { ballPos: [5, 0, 20], holePos: [-10, -20], maxLaunches: 3 },
+];
+
 let ball = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 16), ballMaterial);
 scene.add(ball);
 
-let holeX = 0;
-let holeY = -10;
-const holeCenter = new THREE.Vector3(holeX, -1, holeY);
+let holeCenter = new THREE.Vector3(0, 0, 0);
 const holeRadius = 1.25;
-let table = new THREE.Mesh(createTableWithHole(holeX, holeY, holeRadius), tableMaterial);
+let table = new THREE.Mesh(createTableWithHole(0, 0, holeRadius), tableMaterial);
 table.position.y = -1;
 table.rotateX(Math.PI/2);
 scene.add(table);
@@ -132,9 +136,9 @@ let tableEdgeSpecs = [
     { dims: [34, 4, 2], pos: [0, -0.5, 31] },  // Far
     { dims: [34, 4, 2], pos: [0, -0.5, -31] },  // Near
 ];
-for (const spec of tableEdgeSpecs) {
-    let edge = new THREE.Mesh(new THREE.BoxGeometry(...(spec.dims)), edgeMaterial);
-    edge.position.set(...(spec.pos));
+for (const { dims, pos } of tableEdgeSpecs) {
+    let edge = new THREE.Mesh(new THREE.BoxGeometry(...dims), edgeMaterial);
+    edge.position.set(...pos);
     scene.add(edge);
     createBoxBound(edge, ball);
 }
@@ -145,16 +149,27 @@ let wallSpecs = [
     { dims: [800, 800], pos: [0, 0, -600], angle: 0 },  // Far
     { dims: [800, 800], pos: [0, 0, 600], angle: Math.PI },  // Near
 ];
-for (const spec of wallSpecs) {
-    let wall = new THREE.Mesh(new THREE.PlaneGeometry(...(spec.dims)), wallMaterial);
-    wall.rotateY(spec.angle);
-    wall.position.set(...(spec.pos));
+for (const { dims, pos, angle } of wallSpecs) {
+    let wall = new THREE.Mesh(new THREE.PlaneGeometry(...dims), wallMaterial);
+    wall.rotateY(angle);
+    wall.position.set(...pos);
     scene.add(wall);
 }
 let floor = new THREE.Mesh(new THREE.PlaneGeometry(800, 1200), wallMaterial);
 floor.rotateX(Math.PI / -2);
 floor.position.y = -400;
 scene.add(floor);
+
+function resetLevel() {
+    ball.position.set(...(levelSpecs[level - 1].ballPos));
+}
+function loadLevel() {
+    resetLevel();
+    const levelSpec = levelSpecs[level - 1];
+    table.geometry = createTableWithHole(...(levelSpec.holePos), holeRadius)
+    holeCenter = new THREE.Vector3(levelSpec.holePos[0], -1, levelSpec.holePos[1]);
+}
+loadLevel();
 
 
 // Create a separate scene and camera for UI elements, using an orthographic camera
@@ -196,14 +211,14 @@ let textSpecs = [
 ];
 const textMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
 function createHubText() {
-    for (const spec of textSpecs) {
-        const textGeometry = new TextGeometry(spec.text, {
+    for (const { text, x } of textSpecs) {
+        const textGeometry = new TextGeometry(text, {
             font: hubFont,
             size: 12,
             depth: -1
         });
         const textMesh = new THREE.Mesh(textGeometry, textMaterial);
-        textMesh.position.set(window.innerWidth / -2 + spec.x, window.innerHeight / 2 - 35, -0.1);
+        textMesh.position.set(window.innerWidth / -2 + x, window.innerHeight / 2 - 35, -0.1);
         uiScene.add(textMesh);
     }
     updateLevelNumText();
@@ -213,7 +228,6 @@ function createHubText() {
 
 
 // Create level number geometry and material
-let level = 1;
 let levelNumMesh = null;
 function updateLevelNumText() {
     if (levelNumMesh)
@@ -232,10 +246,6 @@ function updateLevelNumText() {
 
 
 // Create max launch count geometry and material
-const levelSpecs = [
-    { maxLaunches: 3 },
-    { maxLaunches: 3 },
-];
 let maxLaunchCountMesh = null;
 function updateMaxLaunchCountText() {
     if (maxLaunchCountMesh)
@@ -372,18 +382,20 @@ function animate() {
 
     // Ball in hole logic
     if (ball.position.distanceTo(holeCenter) <= holeRadius) {
-        console.log("Level complete");
+        console.log(`level ${level} complete`);
         ballVelocity.set(0, 0, 0);
         if (level < levelSpecs.length) {
             level++;
+            loadLevel();
             launchCount = 0;
             updateLevelNumText();
             updateMaxLaunchCountText();
             updateLaunchCountText();
+            prepLaunch = true;
         }
         else {
             ball.visible = false;
-            console.log("All levels complete");
+            console.log("all levels complete");
         }
     }
 
@@ -393,7 +405,8 @@ function animate() {
         ballVelocity.set(0, 0, 0);
         prepLaunch = true;
         if (launchCount == levelSpecs[level - 1].maxLaunches) {
-            console.log("Restart level");
+            console.log(`restart level ${level}`);
+            resetLevel();
             launchCount = 0;
             updateLaunchCountText();
         }
