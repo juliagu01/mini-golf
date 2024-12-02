@@ -34,6 +34,21 @@ controls.enabled = true;
 controls.minDistance = 10;
 controls.maxDistance = 50;
 
+const mapWidth = 17;
+const mapHeight = 32;
+const mapRenderer = new THREE.WebGLRenderer({ antialias: true });
+mapRenderer.setSize(mapWidth * 10, mapHeight * 10);
+const mapElem = mapRenderer.domElement;
+mapElem.style.position = "absolute";
+mapElem.style.left = `calc(100% - ${mapWidth * 10 + 20}px)`;
+mapElem.style.top = `calc(100% - ${mapHeight * 10 + 20}px)`;
+mapElem.style.opacity = "0.9";
+document.body.appendChild(mapElem);
+
+const mapCamera = new THREE.OrthographicCamera(0 - mapWidth, mapWidth, mapHeight, 0 - mapHeight);
+mapCamera.position.set(0, 10, 0);
+mapCamera.lookAt(0, 0, 0);
+
 let hubFont = null;
 const loader = new FontLoader();
 loader.load('fonts/helvetiker_regular.typeface.json', function (font) {
@@ -444,6 +459,9 @@ function animate() {
     renderer.autoClear = false;
     renderer.clearDepth(); // Clear depth buffer to prevent UI from being obscured by 3D scene
     renderer.render(uiScene, uiCamera);
+
+    // Render the map scene with its own orthographic camera
+    mapRenderer.render(scene, mapCamera);
 }
 animate();
 
