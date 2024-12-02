@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 import { FontLoader } from 'three/addons/loaders/FontLoader.js';
-import { distance } from 'three/webgpu';
+import { levelSpecs } from './data.json';
 
 const scene = new THREE.Scene();
 
@@ -62,6 +62,7 @@ const ballMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
 const tableMaterial = new THREE.MeshPhongMaterial({ color: 0x00ff00, shininess: 100 });
 const wallMaterial = new THREE.MeshPhongMaterial({ color: 0x404040, shininess: 100 });
 const edgeMaterial = new THREE.MeshPhongMaterial({ color: 0x806040, shininess: 100 });
+const obstacleMaterial = new THREE.MeshPhongMaterial({ color: 0xf0d0b0, shininess: 100 });
 
 
 // Object modeling helper functions
@@ -79,6 +80,22 @@ function createTableWithHole(holeX, holeY, holeRadius) {
     tableShape.holes.push(holeShape);
     
     return new THREE.ExtrudeGeometry(tableShape, { depth: 1, bevelEnabled: false });
+}
+
+
+// Custom ExtrudeGeometry for ramps
+function createRampGeometry(width, height, depth) {
+    let shape = new THREE.Shape([
+        new THREE.Vector2(0, 0),
+        new THREE.Vector2(0, height),
+        new THREE.Vector2(width, 0)
+    ]);
+    let geometry = new THREE.ExtrudeGeometry(shape, { depth: depth, bevelEnabled: false });
+    geometry.parameters.width = width;
+    geometry.parameters.height = height;
+    geometry.parameters.depth = depth;
+    geometry.center();
+    return geometry;
 }
 
 // Custom ExtrudeGeometry for box bounds
@@ -104,9 +121,31 @@ function createRoundedBox(width, height, depth, radius0, smoothness) {
     return geometry;
 }
 
+// Custom ExtrudeGeometry for ramp bounds
+function createRoundedRamp(width, height, depth, radius0, smoothness) {
+    let shape = new THREE.Shape();
+    let eps = 0.00001;
+    let radius = radius0 - eps;
+    let normalAngle = Math.PI / 2 - Math.atan2(height, width);
+    shape.absarc(eps, eps, eps, -Math.PI / 2, -Math.PI, true);
+    shape.absarc(eps, height, eps, Math.PI, normalAngle, true);
+    shape.absarc(width, eps, eps, normalAngle, -Math.PI / 2, true);
+    let geometry = new THREE.ExtrudeGeometry(shape, {
+        depth: depth,
+        bevelEnabled: true,
+        bevelSegments: smoothness * 2,
+        steps: 1,
+        bevelSize: radius,
+        bevelThickness: radius0,
+        curveSegments: smoothness
+    });
+    geometry.center();
+    return geometry;
+}
+
 // Manage array of boxes and box bounds
 let boxBounds = [];
-function createBoxBound(box, ball) {
+function createBoxBound(box, ball, boundsArr) {
     const boxParams = box.geometry.parameters;
     const ballParams = ball.geometry.parameters;
 
@@ -122,18 +161,37 @@ function createBoxBound(box, ball) {
         boxParams.depth,
         ballParams.radius,
         1
-    ).applyMatrix4(box.matrix);
+    );
 
-    boxBounds.push({ box: box, simpleBound: simpleBound, bound: bound });
+    boundsArr.push({ object: box, simpleBound: simpleBound, bound: bound });
+}
+
+// Manage array of ramps and ramp bounds
+let rampBounds = [];
+function createRampBound(ramp, ball, boundsArr) {
+    const rampParams = ramp.geometry.parameters;
+    const ballParams = ball.geometry.parameters;
+
+    const simpleBound = new THREE.Box3().setFromCenterAndSize(ramp.position, new THREE.Vector3(
+        rampParams.width + ballParams.radius * 2,
+        rampParams.height + ballParams.radius * 2,
+        rampParams.depth + ballParams.radius * 2
+    ));
+
+    const bound = createRoundedRamp(
+        rampParams.width,
+        rampParams.height,
+        rampParams.depth,
+        ballParams.radius,
+        1
+    );
+
+    boundsArr.push({ object: ramp, simpleBound: simpleBound, bound: bound });
 }
 
 
 // Create objects
 let level = 1;
-const levelSpecs = [
-    { ballPos: [0, 0, 0], holePos: [0, -10], maxLaunches: 3 },
-    { ballPos: [5, 0, 20], holePos: [-10, -20], maxLaunches: 3 },
-];
 
 let ball = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 16), ballMaterial);
 scene.add(ball);
@@ -151,11 +209,12 @@ let tableEdgeSpecs = [
     { dims: [34, 4, 2], pos: [0, -0.5, 31] },  // Far
     { dims: [34, 4, 2], pos: [0, -0.5, -31] },  // Near
 ];
+let tableEdgeBounds = [];
 for (const { dims, pos } of tableEdgeSpecs) {
     let edge = new THREE.Mesh(new THREE.BoxGeometry(...dims), edgeMaterial);
     edge.position.set(...pos);
     scene.add(edge);
-    createBoxBound(edge, ball);
+    createBoxBound(edge, ball, tableEdgeBounds);
 }
 
 let wallSpecs = [
@@ -175,14 +234,36 @@ floor.rotateX(Math.PI / -2);
 floor.position.y = -400;
 scene.add(floor);
 
+
+// Restore states on level start and restart
 function resetLevel() {
     ball.position.set(...(levelSpecs[level - 1].ballPos));
 }
 function loadLevel() {
     resetLevel();
     const levelSpec = levelSpecs[level - 1];
+
+    // Update table
     table.geometry = createTableWithHole(...(levelSpec.holePos), holeRadius)
     holeCenter = new THREE.Vector3(levelSpec.holePos[0], -1, levelSpec.holePos[1]);
+
+    // Update boxes
+    boxBounds = [];
+    for (const { dims, pos } of levelSpec.boxes) {
+        let box = new THREE.Mesh(new THREE.BoxGeometry(...dims), obstacleMaterial);
+        box.position.set(...pos);
+        scene.add(box);
+        createBoxBound(box, ball, boxBounds);
+    }
+
+    // Update ramps
+    rampBounds = [];
+    for (const { dims, pos } of levelSpec.ramps) {
+        let ramp = new THREE.Mesh(createRampGeometry(...dims), obstacleMaterial);
+        ramp.position.set(...pos);
+        scene.add(ramp);
+        createRampBound(ramp, ball, rampBounds);
+    }
 }
 loadLevel();
 
@@ -190,10 +271,11 @@ loadLevel();
 // Create a separate scene and camera for UI elements, using an orthographic camera
 const uiScene = new THREE.Scene();
 const uiCamera = new THREE.OrthographicCamera(
-    -window.innerWidth / 2, window.innerWidth / 2,
-    window.innerHeight / 2, -window.innerHeight / 2,
+    window.innerWidth / -2, window.innerWidth / 2,
+    window.innerHeight / 2, window.innerHeight / -2,
     0.1, 10
 );
+
 // Create the power bar geometry and material
 const powerBarGeometry = new THREE.PlaneGeometry(150, 20); // Width and height of the bar
 const powerBarMaterial = new THREE.MeshBasicMaterial({color: 0xff0000});
@@ -366,6 +448,7 @@ function animate() {
         powerBarMaterial.color.set(`rgb(${red},${green},0)`);
     }
 
+    // Update ball velocity
     ballVelocity.y -= 0.01;  // gravity
     ballVelocity.multiplyScalar(0.95);  // friction
 
@@ -375,7 +458,7 @@ function animate() {
     // Manual raytracing for collision detection
     const ray = new THREE.Ray(pastPos).lookAt(ball.position);
     let closestIntersection = null;
-    for (const { box, simpleBound, bound } of boxBounds) {
+    for (const { object, simpleBound, bound } of tableEdgeBounds.concat(boxBounds).concat(rampBounds)) {
         // Check intersection with simple bound
         const simpleIntersection = new THREE.Vector3();
         if (ray.intersectBox(simpleBound, simpleIntersection)) {
@@ -384,9 +467,9 @@ function animate() {
                 const indices = bound.getAttribute("position").array;
                 for (let i = 0; i < indices.length; i += 9) {
                     const vertices = [];
-                    vertices.push(new THREE.Vector3().fromArray(indices, i + 0).add(box.position));
-                    vertices.push(new THREE.Vector3().fromArray(indices, i + 3).add(box.position));
-                    vertices.push(new THREE.Vector3().fromArray(indices, i + 6).add(box.position));
+                    vertices.push(new THREE.Vector3().fromArray(indices, i + 0).add(object.position));
+                    vertices.push(new THREE.Vector3().fromArray(indices, i + 3).add(object.position));
+                    vertices.push(new THREE.Vector3().fromArray(indices, i + 6).add(object.position));
 
                     const intersection = new THREE.Vector3();
                     if (ray.intersectTriangle(...vertices, true, intersection)) {
@@ -420,8 +503,10 @@ function animate() {
     if (ball.position.distanceTo(holeCenter) <= holeRadius) {
         console.log(`level ${level} complete`);
         ballVelocity.set(0, 0, 0);
+        // If launches remain, add as extra credit
         extraCreditAmount += (levelSpecs[level - 1].maxLaunches - launchCount);
         updateExtraCreditAmountText();
+        // Increment level and load new level
         if (level < levelSpecs.length) {
             level++;
             loadLevel();
@@ -431,6 +516,7 @@ function animate() {
             updateLaunchCountText();
             prepLaunch = true;
         }
+        // If no more levels, end the game
         else {
             ball.visible = false;
             console.log("all levels complete");
@@ -443,6 +529,8 @@ function animate() {
         console.log(`launch ${launchCount} end`);
         ballVelocity.set(0, 0, 0);
         prepLaunch = true;
+
+        // If the max launch count is reached without reaching the goal, restart the level
         if (launchCount == levelSpecs[level - 1].maxLaunches) {
             console.log(`restart level ${level}`);
             resetLevel();
@@ -451,6 +539,7 @@ function animate() {
         }
     }
 
+    // Render the game scene
     controls.target.copy(ball.position);
     controls.update();
     renderer.render(scene, camera);

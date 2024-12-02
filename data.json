@@ -1,0 +1,28 @@
+{
+    "levelSpecs": [
+        {
+            "ballPos": [ 0, 0, 0 ],
+            "holePos": [ 0, -10 ],
+            "maxLaunches": 3,
+            "boxes": [
+                {
+                    "dims": [ 4, 2, 4 ],
+                    "pos": [ 3, 0, 4 ]
+                }
+            ],
+            "ramps": [
+                {
+                    "dims": [ 4, 2, 4 ],
+                    "pos": [ 3, 0, -4 ]
+                }
+            ]
+        },
+        {
+            "ballPos": [ 5, 0, 20 ],
+            "holePos": [ -10, -20 ],
+            "maxLaunches": 3,
+            "boxes": [],
+            "ramps": []
+        }
+    ]
+}
