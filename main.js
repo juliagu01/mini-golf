@@ -15,7 +15,7 @@ renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
 
 const pointLight = new THREE.PointLight(0xffffff, 100, 100);
-pointLight.position.set(5, 5, 5); // Position the light
+pointLight.position.set(10, 5, 5); // Position the light
 scene.add(pointLight);
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
@@ -24,6 +24,11 @@ scene.add(directionalLight);
 
 const ambientLight = new THREE.AmbientLight(0x505050);  // Soft white light
 scene.add(ambientLight);
+
+const sunlight = new THREE.DirectionalLight(0xffffff, 1); // White light, intensity of 1
+sunlight.position.set(10, 20, 10); // X, Y, Z coordinates
+scene.add(sunlight);
+
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableZoom = false; // Disable zooming
@@ -59,15 +64,30 @@ loader.load('fonts/helvetiker_regular.typeface.json', function (font) {
 
 // Define materials
 const textureLoader = new THREE.TextureLoader();
-const normalMap = textureLoader.load('textures/golfball.jpg');
+const normalMap1 = textureLoader.load('textures/golfball.jpg');
+const normalMap2 = textureLoader.load('textures/wood_0019_color_4k.jpg')
+const bmap = textureLoader.load('textures/wood_0019_normal_directx_4k.png')
+const dmap = textureLoader.load('textures/wood_0019_height_4k.png')
+const clearcoatMap = textureLoader.load('textures/Scratched_gold_01_1K_Normal.png')
+
 const ballMaterial = new THREE.MeshPhysicalMaterial({
      color: 0xffffff,
-     normalMap: normalMap,
+     normalMap: normalMap1,
+     clearcoatNormalMap: clearcoatMap,
      clearcoat: 1.0
      });
 const tableMaterial = new THREE.MeshPhongMaterial({ color: 0x00ff00, shininess: 100 });
 const wallMaterial = new THREE.MeshPhongMaterial({ color: 0x404040, shininess: 100 });
-const edgeMaterial = new THREE.MeshPhongMaterial({ color: 0x806040, shininess: 100 });
+const edgeMaterial = new THREE.MeshPhongMaterial({
+    shininess: 100, 
+    bumpMap:bmap,
+    bumpScale: 50,
+    displacementMap: dmap,
+    displacementScale: 0,
+    map: normalMap2, 
+   
+    
+});
 const obstacleMaterial = new THREE.MeshPhongMaterial({ color: 0xf0d0b0, shininess: 100 });
 
 
@@ -200,7 +220,7 @@ function createRampBound(ramp, ball, boundsArr) {
 
 let level = 1;
 
-let ball = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 16), ballMaterial);
+let ball = new THREE.Mesh(new THREE.SphereGeometry(.8, 64, 32), ballMaterial);
 scene.add(ball);
 
 let holeCenter = new THREE.Vector3(0, 0, 0);
