@@ -58,7 +58,13 @@ loader.load('fonts/helvetiker_regular.typeface.json', function (font) {
 
 
 // Define materials
-const ballMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
+const textureLoader = new THREE.TextureLoader();
+const normalMap = textureLoader.load('textures/golfball.jpg');
+const ballMaterial = new THREE.MeshPhysicalMaterial({
+     color: 0xffffff,
+     normalMap: normalMap,
+     clearcoat: 1.0
+     });
 const tableMaterial = new THREE.MeshPhongMaterial({ color: 0x00ff00, shininess: 100 });
 const wallMaterial = new THREE.MeshPhongMaterial({ color: 0x404040, shininess: 100 });
 const edgeMaterial = new THREE.MeshPhongMaterial({ color: 0x806040, shininess: 100 });
@@ -191,6 +197,7 @@ function createRampBound(ramp, ball, boundsArr) {
 
 
 // Create objects
+
 let level = 1;
 
 let ball = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 16), ballMaterial);
