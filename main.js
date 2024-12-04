@@ -46,8 +46,8 @@ sunlight.shadow.camera.left -= 50;
 sunlight.shadow.camera.right += 50;
 
 
-const helper = new THREE.CameraHelper(sunlight.shadow.camera);
-scene.add(helper);
+//const helper = new THREE.CameraHelper(sunlight.shadow.camera);
+//scene.add(helper);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableZoom = false; // Disable zooming
