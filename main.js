@@ -426,6 +426,7 @@ function updateExtraCreditAmountText() {
 
 
 // Physics properties
+const ballRadius = 1;
 const ballVelocity = new THREE.Vector3(0, 0, 0);
 
 // Function to apply a force to the ball
@@ -481,6 +482,12 @@ function animate() {
 
     // Update ball position based on velocity
     ball.position.add(ballVelocity);
+
+    const linearVelocity = ballVelocity.length()
+    const angularVelocity = linearVelocity / ballRadius;
+
+    const axis = new THREE.Vector3(ballVelocity.z, 0, -ballVelocity.x).normalize();
+    ball.rotateOnWorldAxis(axis, angularVelocity);
 
     // Manual raytracing for collision detection
     const ray = new THREE.Ray(pastPos).lookAt(ball.position);
