@@ -3,16 +3,22 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { levelSpecs } from './data.json';
+import {ShadowMesh} from 'three/addons/objects/ShadowMesh.js';
 
 const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0096ff);
 
 const camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, 0.1, 1000 );
 camera.position.set(0, 10, 20);
 camera.lookAt(0, 0, 0);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
 renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
+
+
 
 const pointLight = new THREE.PointLight(0xffffff, 100, 100);
 pointLight.position.set(10, 5, 5); // Position the light
@@ -25,10 +31,23 @@ scene.add(directionalLight);
 const ambientLight = new THREE.AmbientLight(0x505050);  // Soft white light
 scene.add(ambientLight);
 
-const sunlight = new THREE.DirectionalLight(0xffffff, 1); // White light, intensity of 1
-sunlight.position.set(10, 20, 10); // X, Y, Z coordinates
+const sunlight = new THREE.DirectionalLight('rgb(255,255,255)', 3); // White light, intensity of 1
+sunlight.position.set(10, 20, -1); // X, Y, Z coordinates
+sunlight.castShadow = true;
 scene.add(sunlight);
 
+sunlight.shadow.mapSize.width = 8192;
+sunlight.shadow.mapSize.height = 8192;
+
+
+sunlight.shadow.camera.top += 50;
+sunlight.shadow.camera.bottom -= 50;
+sunlight.shadow.camera.left -= 50;
+sunlight.shadow.camera.right += 50;
+
+
+const helper = new THREE.CameraHelper(sunlight.shadow.camera);
+scene.add(helper);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableZoom = false; // Disable zooming
@@ -221,13 +240,17 @@ function createRampBound(ramp, ball, boundsArr) {
 let level = 1;
 
 let ball = new THREE.Mesh(new THREE.SphereGeometry(.8, 64, 32), ballMaterial);
+ball.castShadow = true;
+ball.position.y = -0.1;
+ball.receiveShadow = true;
 scene.add(ball);
 
 let holeCenter = new THREE.Vector3(0, 0, 0);
 const holeRadius = 1.25;
 let table = new THREE.Mesh(createTableWithHole(0, 0, holeRadius), tableMaterial);
-table.position.y = -1;
+table.position.y = -.9;
 table.rotateX(Math.PI/2);
+table.receiveShadow  = true;
 scene.add(table);
 
 let tableEdgeSpecs = [
@@ -239,6 +262,8 @@ let tableEdgeSpecs = [
 let tableEdgeBounds = [];
 for (const { dims, pos } of tableEdgeSpecs) {
     let edge = new THREE.Mesh(new THREE.BoxGeometry(...dims), edgeMaterial);
+    edge.castShadow = true;
+    edge.receiveShadow = true;
     edge.position.set(...pos);
     scene.add(edge);
     createBoxBound(edge, ball, tableEdgeBounds);
@@ -254,12 +279,8 @@ for (const { dims, pos, angle } of wallSpecs) {
     let wall = new THREE.Mesh(new THREE.PlaneGeometry(...dims), wallMaterial);
     wall.rotateY(angle);
     wall.position.set(...pos);
-    scene.add(wall);
+    //scene.add(wall);
 }
-let floor = new THREE.Mesh(new THREE.PlaneGeometry(800, 1200), wallMaterial);
-floor.rotateX(Math.PI / -2);
-floor.position.y = -400;
-scene.add(floor);
 
 
 // Restore states on level start and restart
@@ -279,6 +300,8 @@ function loadLevel() {
     for (const { dims, pos } of levelSpec.boxes) {
         let box = new THREE.Mesh(new THREE.BoxGeometry(...dims), obstacleMaterial);
         box.position.set(...pos);
+        box.castShadow = true;
+        box.receiveShadow = true;
         scene.add(box);
         createBoxBound(box, ball, boxBounds);
     }
@@ -288,6 +311,8 @@ function loadLevel() {
     for (const { dims, pos } of levelSpec.ramps) {
         let ramp = new THREE.Mesh(createRampGeometry(...dims), obstacleMaterial);
         ramp.position.set(...pos);
+        ramp.castShadow = true;
+        ramp.receiveShadow = true;
         scene.add(ramp);
         createRampBound(ramp, ball, rampBounds);
     }
@@ -436,8 +461,8 @@ function applyForce(force) {
   
   // Function to handle collisions with the floor
 function checkFloorCollision() {
-    if (ball.position.y <= 0) {
-      ball.position.y = 0;
+    if (ball.position.y <= -.1) {
+      ball.position.y = -.1;
       ballVelocity.y *= -0.8; // Bounce with energy loss
     }
 }
@@ -459,6 +484,7 @@ window.addEventListener('keydown', (event) => {
         prepLaunch = false;
     }
 });
+
 
 
 const clock = new THREE.Clock();
@@ -573,6 +599,7 @@ function animate() {
         }
     }
 
+    
     // Render the game scene
     controls.target.copy(ball.position);
     controls.update();
