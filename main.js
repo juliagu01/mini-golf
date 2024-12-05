@@ -238,8 +238,9 @@ function createRampBound(ramp, ball, boundsArr) {
 // Create objects
 
 let level = 1;
+const ballRadius = 1;
 
-let ball = new THREE.Mesh(new THREE.SphereGeometry(.8, 64, 32), ballMaterial);
+let ball = new THREE.Mesh(new THREE.SphereGeometry(0.8 * ballRadius, 64, 32), ballMaterial);
 ball.castShadow = true;
 ball.position.y = -0.1;
 ball.receiveShadow = true;
@@ -248,7 +249,7 @@ scene.add(ball);
 let holeCenter = new THREE.Vector3(0, 0, 0);
 const holeRadius = 1.25;
 let table = new THREE.Mesh(createTableWithHole(0, 0, holeRadius), tableMaterial);
-table.position.y = -.9;
+table.position.y = -0.9 * ballRadius;
 table.rotateX(Math.PI/2);
 table.receiveShadow  = true;
 scene.add(table);
@@ -451,8 +452,8 @@ function updateExtraCreditAmountText() {
 
 
 // Physics properties
-const ballRadius = 1;
 const ballVelocity = new THREE.Vector3(0, 0, 0);
+const bounceCoefficient = 0.8;
 
 // Function to apply a force to the ball
 function applyForce(force) {
@@ -462,8 +463,8 @@ function applyForce(force) {
   // Function to handle collisions with the floor
 function checkFloorCollision() {
     if (ball.position.y <= -.1) {
-      ball.position.y = -.1;
-      ballVelocity.y *= -0.8; // Bounce with energy loss
+        ball.position.y = -.1;
+        ballVelocity.y *= -1 * bounceCoefficient; // Bounce with energy loss
     }
 }
 
@@ -535,7 +536,7 @@ function animate() {
                     if (ray.intersectTriangle(...vertices, true, intersection)) {
                         const distance = intersection.distanceTo(pastPos);
                         if (distance < ballVelocity.length() && (closestIntersection === null || closestIntersection.distance > distance))
-                            closestIntersection = { distance: distance, vertices: vertices };
+                            closestIntersection = { distance: distance, vertices: vertices, position: intersection };
                     }
                 }
             }
@@ -550,10 +551,14 @@ function animate() {
 
         // An offset to compensate for reflecting across non-affine plane
         const reflectionCompensation = reflectionPlane.normal.clone().setLength(-2 * reflectionPlane.constant);
-        ball.position.reflect(reflectionPlane.normal).add(reflectionCompensation);
-        ball.updateMatrixWorld();
+        const idealPosition = ball.position.clone().reflect(reflectionPlane.normal).add(reflectionCompensation);
 
-        ballVelocity.reflect(reflectionPlane.normal);
+        // Apply energy-loss bounce
+        ball.position.set(
+            closestIntersection.position.clone().multiplyScalar(1 - bounceCoefficient).addScaledVector(idealPosition, bounceCoefficient)
+        );
+        ball.updateMatrixWorld();
+        ballVelocity.reflect(reflectionPlane.normal).multiplyScalar(bounceCoefficient);
     }
 
     // Check for floor collision
