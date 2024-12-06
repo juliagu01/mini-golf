@@ -284,43 +284,6 @@ for (const { dims, pos, angle } of wallSpecs) {
 }
 
 
-// Restore states on level start and restart
-function resetLevel() {
-    ball.position.set(...(levelSpecs[level - 1].ballPos));
-}
-function loadLevel() {
-    resetLevel();
-    const levelSpec = levelSpecs[level - 1];
-
-    // Update table
-    table.geometry = createTableWithHole(...(levelSpec.holePos), holeRadius)
-    holeCenter = new THREE.Vector3(levelSpec.holePos[0], -1, levelSpec.holePos[1]);
-
-    // Update boxes
-    boxBounds = [];
-    for (const { dims, pos } of levelSpec.boxes) {
-        let box = new THREE.Mesh(new THREE.BoxGeometry(...dims), obstacleMaterial);
-        box.position.set(...pos);
-        box.castShadow = true;
-        box.receiveShadow = true;
-        scene.add(box);
-        createBoxBound(box, ball, boxBounds);
-    }
-
-    // Update ramps
-    rampBounds = [];
-    for (const { dims, pos } of levelSpec.ramps) {
-        let ramp = new THREE.Mesh(createRampGeometry(...dims), obstacleMaterial);
-        ramp.position.set(...pos);
-        ramp.castShadow = true;
-        ramp.receiveShadow = true;
-        scene.add(ramp);
-        createRampBound(ramp, ball, rampBounds);
-    }
-}
-loadLevel();
-
-
 // Create a separate scene and camera for UI elements, using an orthographic camera
 const uiScene = new THREE.Scene();
 const uiCamera = new THREE.OrthographicCamera(
@@ -453,7 +416,61 @@ function updateExtraCreditAmountText() {
 
 // Physics properties
 const ballVelocity = new THREE.Vector3(0, 0, 0);
+let launchAngle = 0;
 const bounceCoefficient = 0.8;
+
+
+// Level properties
+let prepLaunch = true;
+let launchCount = 0;
+let extraCreditAmount = 0;
+
+
+// Restore states on level start and restart
+function resetLevel() {
+    ball.position.set(...(levelSpecs[level - 1].ballPos));
+    ballVelocity.set(0, 0, 0);
+    launchAngle = 0;
+
+    launchCount = 0;
+    updateLaunchCountText();
+}
+function loadLevel() {
+    resetLevel();
+    const levelSpec = levelSpecs[level - 1];
+
+    // Update table
+    table.geometry = createTableWithHole(...(levelSpec.holePos), holeRadius)
+    holeCenter = new THREE.Vector3(levelSpec.holePos[0], -1, levelSpec.holePos[1]);
+
+    // Update boxes
+    boxBounds = [];
+    for (const { dims, pos } of levelSpec.boxes) {
+        let box = new THREE.Mesh(new THREE.BoxGeometry(...dims), obstacleMaterial);
+        box.position.set(...pos);
+        box.castShadow = true;
+        box.receiveShadow = true;
+        scene.add(box);
+        createBoxBound(box, ball, boxBounds);
+    }
+
+    // Update ramps
+    rampBounds = [];
+    for (const { dims, pos } of levelSpec.ramps) {
+        let ramp = new THREE.Mesh(createRampGeometry(...dims), obstacleMaterial);
+        ramp.position.set(...pos);
+        ramp.castShadow = true;
+        ramp.receiveShadow = true;
+        scene.add(ramp);
+        createRampBound(ramp, ball, rampBounds);
+    }
+
+    updateLevelNumText();
+    updateMaxLaunchCountText();
+    prepLaunch = true;
+}
+loadLevel();
+
 
 // Function to apply a force to the ball
 function applyForce(force) {
@@ -469,20 +486,27 @@ function checkFloorCollision() {
 }
 
 let power = 0;  // 0-1
-let prepLaunch = true;
-let launchCount = 0;
-let extraCreditAmount = 0;
 // Launch iff space is pressed AND last launch has finished
 window.addEventListener('keydown', (event) => {
     if (event.code === 'Space' && prepLaunch) {
         launchCount++;
         updateLaunchCountText();
         console.log(`launch ${launchCount} start`);
-        // Calculate the direction vector from the camera to the ball
-        const direction = new THREE.Vector3();
-        direction.subVectors(ball.position, camera.position).normalize();
+        // Calculate the direction vector from the launch angle
+        const direction = (new THREE.Vector3(0, 0, -1)).applyAxisAngle(new THREE.Vector3(0, 1, 0), launchAngle).normalize();
         ballVelocity.addScaledVector(direction, power);
         prepLaunch = false;
+    }
+    if (event.code === 'ArrowLeft' && prepLaunch) {
+        launchAngle += 0.1;
+        ball.rotateY(launchAngle);
+    }
+    if (event.code === 'ArrowRight' && prepLaunch) {
+        launchAngle -= 0.1;
+        ball.rotateY(launchAngle);
+    }
+    if (event.code === 'KeyR') {
+        resetLevel();
     }
 });
 
@@ -574,11 +598,6 @@ function animate() {
         if (level < levelSpecs.length) {
             level++;
             loadLevel();
-            launchCount = 0;
-            updateLevelNumText();
-            updateMaxLaunchCountText();
-            updateLaunchCountText();
-            prepLaunch = true;
         }
         // If no more levels, end the game
         else {
@@ -591,6 +610,7 @@ function animate() {
     // Determine end of launch (note to self: should check that acceleration is 0 too!!)
     if (!prepLaunch && ballVelocity.length() < 0.015) {
         console.log(`launch ${launchCount} end`);
+        launchAngle = ballVelocity.angleTo(new THREE.Vector3(0, 0, -1));
         ballVelocity.set(0, 0, 0);
         prepLaunch = true;
 
@@ -598,8 +618,6 @@ function animate() {
         if (launchCount == levelSpecs[level - 1].maxLaunches) {
             console.log(`restart level ${level}`);
             resetLevel();
-            launchCount = 0;
-            updateLaunchCountText();
         }
     }
 
