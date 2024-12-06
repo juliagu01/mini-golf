@@ -240,11 +240,25 @@ function createRampBound(ramp, ball, boundsArr) {
 let level = 1;
 const ballRadius = 1;
 
-let ball = new THREE.Mesh(new THREE.SphereGeometry(0.8 * ballRadius, 64, 32), ballMaterial);
+const ball = new THREE.Mesh(new THREE.SphereGeometry(0.8 * ballRadius, 64, 32), ballMaterial);
 ball.castShadow = true;
 ball.position.y = -0.1;
 ball.receiveShadow = true;
 scene.add(ball);
+
+const ballIndicatorGeometry = new THREE.BufferGeometry();
+ballIndicatorGeometry.setFromPoints([
+    new THREE.Vector3(0, 0, 0),
+    new THREE.Vector3(0, 0, -20)
+]);
+const ballIndicatorMaterial = new THREE.LineDashedMaterial({
+    color: 0x0000ff,
+    dashSize: 1,
+    gapSize: 0.5
+});
+const ballIndicator = new THREE.Line(ballIndicatorGeometry, ballIndicatorMaterial);
+ballIndicator.computeLineDistances();
+scene.add(ballIndicator);
 
 let holeCenter = new THREE.Vector3(0, 0, 0);
 const holeRadius = 1.25;
@@ -431,6 +445,9 @@ function resetLevel() {
     ball.position.set(...(levelSpecs[level - 1].ballPos));
     ballVelocity.set(0, 0, 0);
     launchAngle = 0;
+    ballIndicator.setRotationFromAxisAngle(ballIndicator.up, launchAngle);
+    ballIndicator.position.copy(ball.position);
+    ballIndicator.visible = true;
 
     launchCount = 0;
     updateLaunchCountText();
@@ -500,15 +517,16 @@ window.addEventListener('keydown', (event) => {
         const direction = new THREE.Vector3(0, 0, -1);
         direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), launchAngle);
         ballVelocity.addScaledVector(direction, power);
+        ballIndicator.visible = false;
         prepLaunch = false;
     }
     if (event.code === 'ArrowLeft' && prepLaunch) {
         launchAngle += 0.1;
-        ball.rotateY(launchAngle);
+        ballIndicator.setRotationFromAxisAngle(ballIndicator.up, launchAngle);
     }
     if (event.code === 'ArrowRight' && prepLaunch) {
         launchAngle -= 0.1;
-        ball.rotateY(launchAngle);
+        ballIndicator.setRotationFromAxisAngle(ballIndicator.up, launchAngle);
     }
     if (event.code === 'KeyR') {
         resetLevel();
@@ -607,6 +625,7 @@ function animate() {
         // If no more levels, end the game
         else {
             ball.visible = false;
+            ballIndicator.visible = false;
             console.log("all levels complete");
             return;
         }
@@ -615,8 +634,11 @@ function animate() {
     // Determine end of launch (note to self: should check that acceleration is 0 too!!)
     if (!prepLaunch && ballVelocity.length() < 0.015) {
         console.log(`launch ${launchCount} end`);
-        launchAngle = ballVelocity.angleTo(new THREE.Vector3(0, 0, -1));
         ballVelocity.set(0, 0, 0);
+        launchAngle = ballVelocity.angleTo(new THREE.Vector3(0, 0, -1));
+        ballIndicator.setRotationFromAxisAngle(ballIndicator.up, launchAngle);
+        ballIndicator.position.copy(ball.position);
+        ballIndicator.visible = true;
         prepLaunch = true;
 
         // If the max launch count is reached without reaching the goal, restart the level
@@ -626,11 +648,9 @@ function animate() {
         }
     }
 
-    
     // Render the game scene
     controls.target.copy(ball.position);
     controls.update();
-    camera.position.set(ball.position.x, 10, ball.position.z);
     renderer.render(scene, camera);
 
     // Render the UI scene with its own orthographic camera
