@@ -462,8 +462,8 @@ function applyForce(force) {
   
   // Function to handle collisions with the floor
 function checkFloorCollision() {
-    if (ball.position.y <= -.1) {
-        ball.position.y = -.1;
+    if (ball.position.y <= -.1 * ballRadius) {
+        ball.position.y = -.1 * ballRadius;
         ballVelocity.y *= -1 * bounceCoefficient; // Bounce with energy loss
     }
 }
@@ -554,9 +554,8 @@ function animate() {
         const idealPosition = ball.position.clone().reflect(reflectionPlane.normal).add(reflectionCompensation);
 
         // Apply energy-loss bounce
-        ball.position.set(
-            closestIntersection.position.clone().multiplyScalar(1 - bounceCoefficient).addScaledVector(idealPosition, bounceCoefficient)
-        );
+        const reducedPosition = closestIntersection.position.clone().lerp(idealPosition, bounceCoefficient);
+        ball.position.set(...(reducedPosition.toArray()));
         ball.updateMatrixWorld();
         ballVelocity.reflect(reflectionPlane.normal).multiplyScalar(bounceCoefficient);
     }
