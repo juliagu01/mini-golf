@@ -444,6 +444,8 @@ function loadLevel() {
     holeCenter = new THREE.Vector3(levelSpec.holePos[0], -1, levelSpec.holePos[1]);
 
     // Update boxes
+    for (const { object } of boxBounds)
+        scene.remove(object);
     boxBounds = [];
     for (const { dims, pos } of levelSpec.boxes) {
         let box = new THREE.Mesh(new THREE.BoxGeometry(...dims), obstacleMaterial);
@@ -455,6 +457,8 @@ function loadLevel() {
     }
 
     // Update ramps
+    for (const { object } of rampBounds)
+        scene.remove(object);
     rampBounds = [];
     for (const { dims, pos } of levelSpec.ramps) {
         let ramp = new THREE.Mesh(createRampGeometry(...dims), obstacleMaterial);
@@ -493,7 +497,8 @@ window.addEventListener('keydown', (event) => {
         updateLaunchCountText();
         console.log(`launch ${launchCount} start`);
         // Calculate the direction vector from the launch angle
-        const direction = (new THREE.Vector3(0, 0, -1)).applyAxisAngle(new THREE.Vector3(0, 1, 0), launchAngle).normalize();
+        const direction = new THREE.Vector3(0, 0, -1);
+        direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), launchAngle);
         ballVelocity.addScaledVector(direction, power);
         prepLaunch = false;
     }
@@ -579,7 +584,7 @@ function animate() {
 
         // Apply energy-loss bounce
         const reducedPosition = closestIntersection.position.clone().lerp(idealPosition, bounceCoefficient);
-        ball.position.set(...(reducedPosition.toArray()));
+        ball.position.copy(reducedPosition);
         ball.updateMatrixWorld();
         ballVelocity.reflect(reflectionPlane.normal).multiplyScalar(bounceCoefficient);
     }
@@ -625,6 +630,7 @@ function animate() {
     // Render the game scene
     controls.target.copy(ball.position);
     controls.update();
+    camera.position.set(ball.position.x, 10, ball.position.z);
     renderer.render(scene, camera);
 
     // Render the UI scene with its own orthographic camera
