@@ -262,6 +262,8 @@ scene.add(ballIndicator);
 
 let holeCenter = new THREE.Vector3(0, 0, 0);
 const holeRadius = 1.25;
+let holeBounds = [];
+
 let table = new THREE.Mesh(createTableWithHole(0, 0, holeRadius), tableMaterial);
 table.position.y = -0.9 * ballRadius;
 table.rotateX(Math.PI/2);
@@ -461,7 +463,16 @@ function loadLevel() {
 
     // Update table
     table.geometry = createTableWithHole(...(levelSpec.holePos), holeRadius)
-    holeCenter = new THREE.Vector3(levelSpec.holePos[0], -1, levelSpec.holePos[1]);
+    holeCenter = new THREE.Vector3(levelSpec.holePos[0], -0.9 * ballRadius, levelSpec.holePos[1]);
+    holeBounds = [{
+        object: { position: holeCenter },
+        simpleBound: new THREE.Box3().setFromCenterAndSize(holeCenter, new THREE.Vector3(
+            holeRadius + ballRadius + 0.001,
+            ballRadius + 0.001,
+            holeRadius + ballRadius + 0.001
+        ).multiplyScalar(2)),
+        bound: new THREE.TorusGeometry(holeRadius, ballRadius, 6, 12).rotateX(Math.PI / 2)
+    }];
 
     // Update boxes
     for (const { object } of boxBounds)
@@ -503,7 +514,8 @@ function applyForce(force) {
   
   // Function to handle collisions with the floor
 function checkFloorCollision() {
-    if (ball.position.y <= -.1 * ballRadius) {
+    const projectedHoleCenter = new THREE.Vector3(holeCenter.x, ball.position.y, holeCenter.z);
+    if (ball.position.distanceTo(projectedHoleCenter) > holeRadius && ball.position.y <= -.1 * ballRadius) {
         ball.position.y = -.1 * ballRadius;
         ballVelocity.y *= -1 * bounceCoefficient; // Bounce with energy loss
     }
@@ -524,11 +536,11 @@ window.addEventListener('keydown', (event) => {
         prepLaunch = false;
     }
     if (event.code === 'ArrowLeft' && prepLaunch) {
-        launchAngle += 0.1;
+        launchAngle += Math.PI / 60;
         ballIndicator.setRotationFromAxisAngle(upVector, launchAngle);
     }
     if (event.code === 'ArrowRight' && prepLaunch) {
-        launchAngle -= 0.1;
+        launchAngle -= Math.PI / 60;
         ballIndicator.setRotationFromAxisAngle(upVector, launchAngle);
     }
     if (event.code === 'KeyR')
@@ -574,7 +586,7 @@ function animate() {
     // Manual raytracing for collision detection
     const ray = new THREE.Ray(pastPos).lookAt(ball.position);
     let closestIntersection = null;
-    for (const { object, simpleBound, bound } of tableEdgeBounds.concat(boxBounds).concat(rampBounds)) {
+    for (const { object, simpleBound, bound } of tableEdgeBounds.concat(boxBounds).concat(rampBounds).concat(holeBounds)) {
         // Check intersection with simple bound
         const simpleOverlap = simpleBound.containsPoint(pastPos);
         const simpleIntersection = new THREE.Vector3();
@@ -619,7 +631,7 @@ function animate() {
     checkFloorCollision();
 
     // Ball in hole logic
-    if (ball.position.distanceTo(holeCenter) <= holeRadius) {
+    if (ball.position.y <= -3) {
         console.log(`level ${level} complete`);
         ballVelocity.set(0, 0, 0);
         // If launches remain, add as extra credit
