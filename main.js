@@ -563,7 +563,9 @@ function animate() {
     // Update ball position based on velocity
     ball.position.add(ballVelocity);
 
-    const linearVelocity = ballVelocity.length()
+    const adjustedVelocity = ballVelocity.clone();
+    adjustedVelocity.y = 0;
+    const linearVelocity = adjustedVelocity.length();
     const angularVelocity = linearVelocity / ballRadius;
 
     const axis = new THREE.Vector3(ballVelocity.z, 0, -ballVelocity.x).normalize();
