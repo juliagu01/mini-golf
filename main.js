@@ -433,6 +433,9 @@ const ballVelocity = new THREE.Vector3(0, 0, 0);
 let launchAngle = 0;
 const bounceCoefficient = 0.8;
 
+const forwardVector = new THREE.Vector3(0, 0, -1);  // for launch angle calculations
+const upVector = new THREE.Vector3(0, 1, 0);
+
 
 // Level properties
 let prepLaunch = true;
@@ -445,7 +448,7 @@ function resetLevel() {
     ball.position.set(...(levelSpecs[level - 1].ballPos));
     ballVelocity.set(0, 0, 0);
     launchAngle = 0;
-    ballIndicator.setRotationFromAxisAngle(ballIndicator.up, launchAngle);
+    ballIndicator.setRotationFromAxisAngle(upVector, launchAngle);
     ballIndicator.position.copy(ball.position);
     ballIndicator.visible = true;
 
@@ -514,19 +517,19 @@ window.addEventListener('keydown', (event) => {
         updateLaunchCountText();
         console.log(`launch ${launchCount} start`);
         // Calculate the direction vector from the launch angle
-        const direction = new THREE.Vector3(0, 0, -1);
-        direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), launchAngle);
+        const direction = forwardVector.clone();
+        direction.applyAxisAngle(upVector, launchAngle);
         ballVelocity.addScaledVector(direction, power);
         ballIndicator.visible = false;
         prepLaunch = false;
     }
     if (event.code === 'ArrowLeft' && prepLaunch) {
         launchAngle += 0.1;
-        ballIndicator.setRotationFromAxisAngle(ballIndicator.up, launchAngle);
+        ballIndicator.setRotationFromAxisAngle(upVector, launchAngle);
     }
     if (event.code === 'ArrowRight' && prepLaunch) {
         launchAngle -= 0.1;
-        ballIndicator.setRotationFromAxisAngle(ballIndicator.up, launchAngle);
+        ballIndicator.setRotationFromAxisAngle(upVector, launchAngle);
     }
     if (event.code === 'KeyR') {
         resetLevel();
@@ -632,13 +635,16 @@ function animate() {
     }
 
     // Determine end of launch (note to self: should check that acceleration is 0 too!!)
-    if (!prepLaunch && ballVelocity.length() < 0.015) {
+    if (!prepLaunch && ballVelocity.length() < 0.03) {
         console.log(`launch ${launchCount} end`);
-        ballVelocity.set(0, 0, 0);
-        launchAngle = ballVelocity.angleTo(new THREE.Vector3(0, 0, -1));
-        ballIndicator.setRotationFromAxisAngle(ballIndicator.up, launchAngle);
+        ballVelocity.y = 0;
+        launchAngle = ballVelocity.angleTo(forwardVector);
+        if (forwardVector.clone().cross(ballVelocity).dot(upVector) < 0)
+            launchAngle *= -1;
+        ballIndicator.setRotationFromAxisAngle(upVector, launchAngle);
         ballIndicator.position.copy(ball.position);
         ballIndicator.visible = true;
+        ballVelocity.set(0, 0, 0);
         prepLaunch = true;
 
         // If the max launch count is reached without reaching the goal, restart the level
