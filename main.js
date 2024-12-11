@@ -531,9 +531,10 @@ window.addEventListener('keydown', (event) => {
         launchAngle -= 0.1;
         ballIndicator.setRotationFromAxisAngle(upVector, launchAngle);
     }
-    if (event.code === 'KeyR') {
+    if (event.code === 'KeyR')
         resetLevel();
-    }
+    if (event.code === 'KeyP')
+        console.log(ball.scale);
 });
 
 
@@ -551,6 +552,8 @@ function animate() {
         const red = Math.floor(255 * (1 - power));
         const green = Math.floor(255 * power);
         powerBarMaterial.color.set(`rgb(${red},${green},0)`);
+
+        ballIndicator.position.copy(ball.position);
     }
 
     // Update ball velocity
@@ -571,23 +574,23 @@ function animate() {
     let closestIntersection = null;
     for (const { object, simpleBound, bound } of tableEdgeBounds.concat(boxBounds).concat(rampBounds)) {
         // Check intersection with simple bound
+        const simpleOverlap = simpleBound.containsPoint(pastPos);
         const simpleIntersection = new THREE.Vector3();
-        if (ray.intersectBox(simpleBound, simpleIntersection)) {
-            if (simpleIntersection.distanceTo(pastPos) < ballVelocity.length()) {
-                // Check intersection with bound
-                const indices = bound.getAttribute("position").array;
-                for (let i = 0; i < indices.length; i += 9) {
-                    const vertices = [];
-                    vertices.push(new THREE.Vector3().fromArray(indices, i + 0).add(object.position));
-                    vertices.push(new THREE.Vector3().fromArray(indices, i + 3).add(object.position));
-                    vertices.push(new THREE.Vector3().fromArray(indices, i + 6).add(object.position));
+        ray.intersectBox(simpleBound, simpleIntersection);
+        if (simpleOverlap || simpleIntersection?.distanceTo(pastPos) < ballVelocity.length()) {
+            // Check intersection with bound
+            const indices = bound.getAttribute("position").array;
+            for (let i = 0; i < indices.length; i += 9) {
+                const vertices = [];
+                vertices.push(new THREE.Vector3().fromArray(indices, i + 0).add(object.position));
+                vertices.push(new THREE.Vector3().fromArray(indices, i + 3).add(object.position));
+                vertices.push(new THREE.Vector3().fromArray(indices, i + 6).add(object.position));
 
-                    const intersection = new THREE.Vector3();
-                    if (ray.intersectTriangle(...vertices, true, intersection)) {
-                        const distance = intersection.distanceTo(pastPos);
-                        if (distance < ballVelocity.length() && (closestIntersection === null || closestIntersection.distance > distance))
-                            closestIntersection = { distance: distance, vertices: vertices, position: intersection };
-                    }
+                const intersection = new THREE.Vector3();
+                if (ray.intersectTriangle(...vertices, true, intersection)) {
+                    const distance = intersection.distanceTo(pastPos);
+                    if (distance < ballVelocity.length() && (closestIntersection === null || closestIntersection.distance > distance))
+                        closestIntersection = { distance: distance, vertices: vertices, position: intersection };
                 }
             }
         }
@@ -642,7 +645,6 @@ function animate() {
         if (forwardVector.clone().cross(ballVelocity).dot(upVector) < 0)
             launchAngle *= -1;
         ballIndicator.setRotationFromAxisAngle(upVector, launchAngle);
-        ballIndicator.position.copy(ball.position);
         ballIndicator.visible = true;
         ballVelocity.set(0, 0, 0);
         prepLaunch = true;
