@@ -262,17 +262,34 @@ function createRampBound(ramp, ball, boundsArr) {
 // Create objects
 
 let level = 1;
+const ballRadius = 1;
 
-let ball = new THREE.Mesh(new THREE.SphereGeometry(.8, 64, 32), ballMaterial);
+const ball = new THREE.Mesh(new THREE.SphereGeometry(0.8 * ballRadius, 64, 32), ballMaterial);
 ball.castShadow = true;
 ball.position.y = -0.1;
 ball.receiveShadow = true;
 scene.add(ball);
 
+const ballIndicatorGeometry = new THREE.BufferGeometry();
+ballIndicatorGeometry.setFromPoints([
+    new THREE.Vector3(0, 0, 0),
+    new THREE.Vector3(0, 0, -20)
+]);
+const ballIndicatorMaterial = new THREE.LineDashedMaterial({
+    color: 0x0000ff,
+    dashSize: 1,
+    gapSize: 0.5
+});
+const ballIndicator = new THREE.Line(ballIndicatorGeometry, ballIndicatorMaterial);
+ballIndicator.computeLineDistances();
+scene.add(ballIndicator);
+
 let holeCenter = new THREE.Vector3(0, 0, 0);
 const holeRadius = 1.25;
+let holeBounds = [];
+
 let table = new THREE.Mesh(createTableWithHole(0, 0, holeRadius), tableMaterial);
-table.position.y = -.9;
+table.position.y = -0.9 * ballRadius;
 table.rotateX(Math.PI/2);
 table.receiveShadow  = true;
 scene.add(table);
@@ -305,43 +322,6 @@ for (const { dims, pos, angle } of wallSpecs) {
     wall.position.set(...pos);
     //scene.add(wall);
 }
-
-
-// Restore states on level start and restart
-function resetLevel() {
-    ball.position.set(...(levelSpecs[level - 1].ballPos));
-}
-function loadLevel() {
-    resetLevel();
-    const levelSpec = levelSpecs[level - 1];
-
-    // Update table
-    table.geometry = createTableWithHole(...(levelSpec.holePos), holeRadius)
-    holeCenter = new THREE.Vector3(levelSpec.holePos[0], -1, levelSpec.holePos[1]);
-
-    // Update boxes
-    boxBounds = [];
-    for (const { dims, pos } of levelSpec.boxes) {
-        let box = new THREE.Mesh(new THREE.BoxGeometry(...dims), obstacleMaterial);
-        box.position.set(...pos);
-        box.castShadow = true;
-        box.receiveShadow = true;
-        scene.add(box);
-        createBoxBound(box, ball, boxBounds);
-    }
-
-    // Update ramps
-    rampBounds = [];
-    for (const { dims, pos } of levelSpec.ramps) {
-        let ramp = new THREE.Mesh(createRampGeometry(...dims), obstacleMaterial);
-        ramp.position.set(...pos);
-        ramp.castShadow = true;
-        ramp.receiveShadow = true;
-        scene.add(ramp);
-        createRampBound(ramp, ball, rampBounds);
-    }
-}
-loadLevel();
 
 
 // Create a separate scene and camera for UI elements, using an orthographic camera
@@ -475,8 +455,81 @@ function updateExtraCreditAmountText() {
 
 
 // Physics properties
-const ballRadius = 1;
 const ballVelocity = new THREE.Vector3(0, 0, 0);
+let launchAngle = 0;
+const bounceCoefficient = 0.8;
+
+const forwardVector = new THREE.Vector3(0, 0, -1);  // for launch angle calculations
+const upVector = new THREE.Vector3(0, 1, 0);
+
+
+// Level properties
+let prepLaunch = true;
+let launchCount = 0;
+let extraCreditAmount = 0;
+
+
+// Restore states on level start and restart
+function resetLevel() {
+    ball.position.set(...(levelSpecs[level - 1].ballPos));
+    ballVelocity.set(0, 0, 0);
+    launchAngle = 0;
+    ballIndicator.setRotationFromAxisAngle(upVector, launchAngle);
+    ballIndicator.position.copy(ball.position);
+    ballIndicator.visible = true;
+
+    launchCount = 0;
+    updateLaunchCountText();
+}
+function loadLevel() {
+    resetLevel();
+    const levelSpec = levelSpecs[level - 1];
+
+    // Update table
+    table.geometry = createTableWithHole(...(levelSpec.holePos), holeRadius)
+    holeCenter = new THREE.Vector3(levelSpec.holePos[0], -0.9 * ballRadius, levelSpec.holePos[1]);
+    holeBounds = [{
+        object: { position: holeCenter },
+        simpleBound: new THREE.Box3().setFromCenterAndSize(holeCenter, new THREE.Vector3(
+            holeRadius + ballRadius + 0.001,
+            ballRadius + 0.001,
+            holeRadius + ballRadius + 0.001
+        ).multiplyScalar(2)),
+        bound: new THREE.TorusGeometry(holeRadius, ballRadius, 6, 12).rotateX(Math.PI / 2)
+    }];
+
+    // Update boxes
+    for (const { object } of boxBounds)
+        scene.remove(object);
+    boxBounds = [];
+    for (const { dims, pos } of levelSpec.boxes) {
+        let box = new THREE.Mesh(new THREE.BoxGeometry(...dims), obstacleMaterial);
+        box.position.set(...pos);
+        box.castShadow = true;
+        box.receiveShadow = true;
+        scene.add(box);
+        createBoxBound(box, ball, boxBounds);
+    }
+
+    // Update ramps
+    for (const { object } of rampBounds)
+        scene.remove(object);
+    rampBounds = [];
+    for (const { dims, pos } of levelSpec.ramps) {
+        let ramp = new THREE.Mesh(createRampGeometry(...dims), obstacleMaterial);
+        ramp.position.set(...pos);
+        ramp.castShadow = true;
+        ramp.receiveShadow = true;
+        scene.add(ramp);
+        createRampBound(ramp, ball, rampBounds);
+    }
+
+    updateLevelNumText();
+    updateMaxLaunchCountText();
+    prepLaunch = true;
+}
+loadLevel();
+
 
 // Function to apply a force to the ball
 function applyForce(force) {
@@ -485,28 +538,39 @@ function applyForce(force) {
   
   // Function to handle collisions with the floor
 function checkFloorCollision() {
-    if (ball.position.y <= -.1) {
-      ball.position.y = -.1;
-      ballVelocity.y *= -0.8; // Bounce with energy loss
+    const projectedHoleCenter = new THREE.Vector3(holeCenter.x, ball.position.y, holeCenter.z);
+    if (ball.position.distanceTo(projectedHoleCenter) > holeRadius && ball.position.y <= -.1 * ballRadius) {
+        ball.position.y = -.1 * ballRadius;
+        ballVelocity.y *= -1 * bounceCoefficient; // Bounce with energy loss
     }
 }
 
 let power = 0;  // 0-1
-let prepLaunch = true;
-let launchCount = 0;
-let extraCreditAmount = 0;
 // Launch iff space is pressed AND last launch has finished
 window.addEventListener('keydown', (event) => {
     if (event.code === 'Space' && prepLaunch) {
         launchCount++;
         updateLaunchCountText();
         console.log(`launch ${launchCount} start`);
-        // Calculate the direction vector from the camera to the ball
-        const direction = new THREE.Vector3();
-        direction.subVectors(ball.position, camera.position).normalize();
+        // Calculate the direction vector from the launch angle
+        const direction = forwardVector.clone();
+        direction.applyAxisAngle(upVector, launchAngle);
         ballVelocity.addScaledVector(direction, power);
+        ballIndicator.visible = false;
         prepLaunch = false;
     }
+    if (event.code === 'ArrowLeft' && prepLaunch) {
+        launchAngle += Math.PI / 60;
+        ballIndicator.setRotationFromAxisAngle(upVector, launchAngle);
+    }
+    if (event.code === 'ArrowRight' && prepLaunch) {
+        launchAngle -= Math.PI / 60;
+        ballIndicator.setRotationFromAxisAngle(upVector, launchAngle);
+    }
+    if (event.code === 'KeyR')
+        resetLevel();
+    if (event.code === 'KeyP')
+        console.log(ball.scale);
 });
 
 
@@ -524,6 +588,8 @@ function animate() {
         const red = Math.floor(255 * (1 - power));
         const green = Math.floor(255 * power);
         powerBarMaterial.color.set(`rgb(${red},${green},0)`);
+
+        ballIndicator.position.copy(ball.position);
     }
 
     // Update ball velocity
@@ -533,7 +599,9 @@ function animate() {
     // Update ball position based on velocity
     ball.position.add(ballVelocity);
 
-    const linearVelocity = ballVelocity.length()
+    const adjustedVelocity = ballVelocity.clone();
+    adjustedVelocity.y = 0;
+    const linearVelocity = adjustedVelocity.length();
     const angularVelocity = linearVelocity / ballRadius;
 
     const axis = new THREE.Vector3(ballVelocity.x, 0, -ballVelocity.z).normalize();
@@ -543,25 +611,25 @@ function animate() {
     // Manual raytracing for collision detection
     const ray = new THREE.Ray(pastPos).lookAt(ball.position);
     let closestIntersection = null;
-    for (const { object, simpleBound, bound } of tableEdgeBounds.concat(boxBounds).concat(rampBounds)) {
+    for (const { object, simpleBound, bound } of tableEdgeBounds.concat(boxBounds).concat(rampBounds).concat(holeBounds)) {
         // Check intersection with simple bound
+        const simpleOverlap = simpleBound.containsPoint(pastPos);
         const simpleIntersection = new THREE.Vector3();
-        if (ray.intersectBox(simpleBound, simpleIntersection)) {
-            if (simpleIntersection.distanceTo(pastPos) < ballVelocity.length()) {
-                // Check intersection with bound
-                const indices = bound.getAttribute("position").array;
-                for (let i = 0; i < indices.length; i += 9) {
-                    const vertices = [];
-                    vertices.push(new THREE.Vector3().fromArray(indices, i + 0).add(object.position));
-                    vertices.push(new THREE.Vector3().fromArray(indices, i + 3).add(object.position));
-                    vertices.push(new THREE.Vector3().fromArray(indices, i + 6).add(object.position));
+        ray.intersectBox(simpleBound, simpleIntersection);
+        if (simpleOverlap || simpleIntersection?.distanceTo(pastPos) < ballVelocity.length()) {
+            // Check intersection with bound
+            const indices = bound.getAttribute("position").array;
+            for (let i = 0; i < indices.length; i += 9) {
+                const vertices = [];
+                vertices.push(new THREE.Vector3().fromArray(indices, i + 0).add(object.position));
+                vertices.push(new THREE.Vector3().fromArray(indices, i + 3).add(object.position));
+                vertices.push(new THREE.Vector3().fromArray(indices, i + 6).add(object.position));
 
-                    const intersection = new THREE.Vector3();
-                    if (ray.intersectTriangle(...vertices, true, intersection)) {
-                        const distance = intersection.distanceTo(pastPos);
-                        if (distance < ballVelocity.length() && (closestIntersection === null || closestIntersection.distance > distance))
-                            closestIntersection = { distance: distance, vertices: vertices };
-                    }
+                const intersection = new THREE.Vector3();
+                if (ray.intersectTriangle(...vertices, true, intersection)) {
+                    const distance = intersection.distanceTo(pastPos);
+                    if (distance < ballVelocity.length() && (closestIntersection === null || closestIntersection.distance > distance))
+                        closestIntersection = { distance: distance, vertices: vertices, position: intersection };
                 }
             }
         }
@@ -575,17 +643,20 @@ function animate() {
 
         // An offset to compensate for reflecting across non-affine plane
         const reflectionCompensation = reflectionPlane.normal.clone().setLength(-2 * reflectionPlane.constant);
-        ball.position.reflect(reflectionPlane.normal).add(reflectionCompensation);
-        ball.updateMatrixWorld();
+        const idealPosition = ball.position.clone().reflect(reflectionPlane.normal).add(reflectionCompensation);
 
-        ballVelocity.reflect(reflectionPlane.normal);
+        // Apply energy-loss bounce
+        const reducedPosition = closestIntersection.position.clone().lerp(idealPosition, bounceCoefficient);
+        ball.position.copy(reducedPosition);
+        ball.updateMatrixWorld();
+        ballVelocity.reflect(reflectionPlane.normal).multiplyScalar(bounceCoefficient);
     }
 
     // Check for floor collision
     checkFloorCollision();
 
     // Ball in hole logic
-    if (ball.position.distanceTo(holeCenter) <= holeRadius) {
+    if (ball.position.y <= -3) {
         console.log(`level ${level} complete`);
         ballVelocity.set(0, 0, 0);
         // If launches remain, add as extra credit
@@ -595,23 +666,25 @@ function animate() {
         if (level < levelSpecs.length) {
             level++;
             loadLevel();
-            launchCount = 0;
-            updateLevelNumText();
-            updateMaxLaunchCountText();
-            updateLaunchCountText();
-            prepLaunch = true;
         }
         // If no more levels, end the game
         else {
             ball.visible = false;
+            ballIndicator.visible = false;
             console.log("all levels complete");
             return;
         }
     }
 
     // Determine end of launch (note to self: should check that acceleration is 0 too!!)
-    if (!prepLaunch && ballVelocity.length() < 0.015) {
+    if (!prepLaunch && ballVelocity.length() < 0.03) {
         console.log(`launch ${launchCount} end`);
+        ballVelocity.y = 0;
+        launchAngle = ballVelocity.angleTo(forwardVector);
+        if (forwardVector.clone().cross(ballVelocity).dot(upVector) < 0)
+            launchAngle *= -1;
+        ballIndicator.setRotationFromAxisAngle(upVector, launchAngle);
+        ballIndicator.visible = true;
         ballVelocity.set(0, 0, 0);
         prepLaunch = true;
 
@@ -619,12 +692,9 @@ function animate() {
         if (launchCount == levelSpecs[level - 1].maxLaunches) {
             console.log(`restart level ${level}`);
             resetLevel();
-            launchCount = 0;
-            updateLaunchCountText();
         }
     }
 
-    
     // Render the game scene
     controls.target.copy(ball.position);
     controls.update();
