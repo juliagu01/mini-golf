@@ -3,7 +3,15 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { levelSpecs } from './data.json';
-import {ShadowMesh} from 'three/addons/objects/ShadowMesh.js';
+import { Sky } from 'three/addons/objects/Sky.js';
+
+const startScene = new THREE.Scene()
+const startCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+startCamera.position.z = 5;
+
+
+
+
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0096ff);
@@ -18,21 +26,37 @@ renderer.shadowMap.type = THREE.PCFShadowMap;
 renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
 
+//sky
+const sky = new Sky();
+sky.scale.setScalar( 4500 );
 
+const uniforms = sky.material.uniforms;
+uniforms[ 'turbidity' ].value = 0.1;
+uniforms[ 'rayleigh' ].value = 0.312;
+uniforms[ 'mieCoefficient' ].value = 0.035;
+uniforms[ 'mieDirectionalG' ].value = 0.754;
 
+const phi = (90 * Math.PI/180) + 4 ;
+const theta = 180 * Math.PI/180;
+const sunPosition = new THREE.Vector3().setFromSphericalCoords( 100, phi, theta );
+
+sky.material.uniforms.sunPosition.value = sunPosition;
+
+scene.add( sky );
+/*
 const pointLight = new THREE.PointLight(0xffffff, 100, 100);
 pointLight.position.set(10, 5, 5); // Position the light
 scene.add(pointLight);
-
+*/
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
 directionalLight.position.set(0.5, .0, 1.0).normalize();
-scene.add(directionalLight);
+//scene.add(directionalLight);
 
 const ambientLight = new THREE.AmbientLight(0x505050);  // Soft white light
 scene.add(ambientLight);
 
 const sunlight = new THREE.DirectionalLight('rgb(255,255,255)', 3); // White light, intensity of 1
-sunlight.position.set(10, 20, -1); // X, Y, Z coordinates
+sunlight.position.copy(sunPosition); // X, Y, Z coordinates
 sunlight.castShadow = true;
 scene.add(sunlight);
 
@@ -46,8 +70,8 @@ sunlight.shadow.camera.left -= 50;
 sunlight.shadow.camera.right += 50;
 
 
-//const helper = new THREE.CameraHelper(sunlight.shadow.camera);
-//scene.add(helper);
+const helper = new THREE.CameraHelper(sunlight.shadow.camera);
+scene.add(helper);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableZoom = false; // Disable zooming
@@ -89,11 +113,11 @@ const bmap = textureLoader.load('textures/wood_0019_normal_directx_4k.png')
 const dmap = textureLoader.load('textures/wood_0019_height_4k.png')
 const clearcoatMap = textureLoader.load('textures/Scratched_gold_01_1K_Normal.png')
 
-const ballMaterial = new THREE.MeshPhysicalMaterial({
+const ballMaterial = new THREE.MeshPhongMaterial({
      color: 0xffffff,
      normalMap: normalMap1,
      clearcoatNormalMap: clearcoatMap,
-     clearcoat: 1.0
+     //clearcoat: 1.0
      });
 const tableMaterial = new THREE.MeshPhongMaterial({ color: 0x00ff00, shininess: 100 });
 const wallMaterial = new THREE.MeshPhongMaterial({ color: 0x404040, shininess: 100 });
@@ -503,7 +527,7 @@ function animate() {
     }
 
     // Update ball velocity
-    ballVelocity.y -= 0.01;  // gravity
+    ballVelocity.y -= 0.02;  // gravity
     ballVelocity.multiplyScalar(0.95);  // friction
 
     // Update ball position based on velocity
@@ -512,7 +536,8 @@ function animate() {
     const linearVelocity = ballVelocity.length()
     const angularVelocity = linearVelocity / ballRadius;
 
-    const axis = new THREE.Vector3(ballVelocity.z, 0, -ballVelocity.x).normalize();
+    const axis = new THREE.Vector3(ballVelocity.x, 0, -ballVelocity.z).normalize();
+    axis.normalize()
     ball.rotateOnWorldAxis(axis, angularVelocity);
 
     // Manual raytracing for collision detection
