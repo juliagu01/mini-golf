@@ -43,11 +43,11 @@ const sunPosition = new THREE.Vector3().setFromSphericalCoords( 100, phi, theta 
 sky.material.uniforms.sunPosition.value = sunPosition;
 
 scene.add( sky );
-/*
-const pointLight = new THREE.PointLight(0xffffff, 100, 100);
+
+const pointLight = new THREE.PointLight(0xffffff, 1, 0, 2);
 pointLight.position.set(10, 5, 5); // Position the light
 scene.add(pointLight);
-*/
+
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
 directionalLight.position.set(0.5, .0, 1.0).normalize();
 //scene.add(directionalLight);
@@ -55,10 +55,31 @@ directionalLight.position.set(0.5, .0, 1.0).normalize();
 const ambientLight = new THREE.AmbientLight(0x505050);  // Soft white light
 scene.add(ambientLight);
 
-const sunlight = new THREE.DirectionalLight('rgb(255,255,255)', 3); // White light, intensity of 1
+const sunlight = new THREE.DirectionalLight('rgb(255,255,255)', 2); // White light, intensity of 1
 sunlight.position.copy(sunPosition); // X, Y, Z coordinates
 sunlight.castShadow = true;
 scene.add(sunlight);
+
+const textureLoader = new THREE.TextureLoader();
+const normalMap1 = textureLoader.load('textures/golfball.jpg');
+const normalMap2 = textureLoader.load('textures/wood_0019_color_4k.jpg')
+const bmap = textureLoader.load('textures/wood_0019_normal_directx_4k.png')
+const dmap = textureLoader.load('textures/wood_0019_height_4k.png')
+const clearcoatMap = textureLoader.load('textures/Scratched_gold_01_1K_Normal.png')
+
+const ballMaterial = new THREE.MeshPhongMaterial({
+     color: 0xffffff,
+     normalMap: normalMap1,
+     clearcoatNormalMap: clearcoatMap,
+     clearcoat: 1.0
+     });
+const ballRadius = 1;
+
+const ball = new THREE.Mesh(new THREE.SphereGeometry(0.8 * ballRadius, 64, 32), ballMaterial);
+ball.castShadow = true;
+ball.position.y = -0.1;
+ball.receiveShadow = true;
+scene.add(ball);
 
 sunlight.shadow.mapSize.width = 8192;
 sunlight.shadow.mapSize.height = 8192;
@@ -77,10 +98,10 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableZoom = false; // Disable zooming
 controls.enablePan = false; // Disable panning
 controls.autoRotate = false;
-controls.target.set(0, 0, 0);
+controls.target.copy(ball.position);
 controls.enabled = true;
 controls.minDistance = 10;
-controls.maxDistance = 50;
+controls.maxDistance = 25;
 
 const mapWidth = 17;
 const mapHeight = 32;
@@ -106,19 +127,7 @@ loader.load('fonts/helvetiker_regular.typeface.json', function (font) {
 
 
 // Define materials
-const textureLoader = new THREE.TextureLoader();
-const normalMap1 = textureLoader.load('textures/golfball.jpg');
-const normalMap2 = textureLoader.load('textures/wood_0019_color_4k.jpg')
-const bmap = textureLoader.load('textures/wood_0019_normal_directx_4k.png')
-const dmap = textureLoader.load('textures/wood_0019_height_4k.png')
-const clearcoatMap = textureLoader.load('textures/Scratched_gold_01_1K_Normal.png')
 
-const ballMaterial = new THREE.MeshPhongMaterial({
-     color: 0xffffff,
-     normalMap: normalMap1,
-     clearcoatNormalMap: clearcoatMap,
-     //clearcoat: 1.0
-     });
 const tableMaterial = new THREE.MeshPhongMaterial({ color: 0x00ff00, shininess: 100 });
 const wallMaterial = new THREE.MeshPhongMaterial({ color: 0x404040, shininess: 100 });
 const edgeMaterial = new THREE.MeshPhongMaterial({
@@ -262,13 +271,8 @@ function createRampBound(ramp, ball, boundsArr) {
 // Create objects
 
 let level = 1;
-const ballRadius = 1;
 
-const ball = new THREE.Mesh(new THREE.SphereGeometry(0.8 * ballRadius, 64, 32), ballMaterial);
-ball.castShadow = true;
-ball.position.y = -0.1;
-ball.receiveShadow = true;
-scene.add(ball);
+
 
 const ballIndicatorGeometry = new THREE.BufferGeometry();
 ballIndicatorGeometry.setFromPoints([
@@ -594,7 +598,7 @@ function animate() {
 
     // Update ball velocity
     ballVelocity.y -= 0.02;  // gravity
-    ballVelocity.multiplyScalar(0.95);  // friction
+    ballVelocity.multiplyScalar(0.98);  // friction
 
     // Update ball position based on velocity
     ball.position.add(ballVelocity);
@@ -606,7 +610,7 @@ function animate() {
 
     const axis = new THREE.Vector3(ballVelocity.x, 0, -ballVelocity.z).normalize();
     axis.normalize()
-    ball.rotateOnWorldAxis(axis, angularVelocity);
+    ball.rotateOnAxis(axis, angularVelocity);
 
     // Manual raytracing for collision detection
     const ray = new THREE.Ray(pastPos).lookAt(ball.position);
@@ -708,5 +712,66 @@ function animate() {
     // Render the map scene with its own orthographic camera
     mapRenderer.render(scene, mapCamera);
 }
-animate();
+function startScreen(){
+    
+
+  // Add lighting and golf ball for start screen
+    const light = new THREE.AmbientLight(0xffffff, 1);
+    scene.add(light);
+    let startBall = new THREE.Mesh(new THREE.SphereGeometry(0.8 * ballRadius, 64, 32), ballMaterial);
+    startBall.castShadow = true;
+    
+    startBall.receiveShadow = true;
+    scene.add(startBall);
+
+    startBall.position.set(40, 40, 40);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableZoom = false; // Disable zooming
+    controls.enablePan = false; // Disable panning
+    controls.autoRotate = false;
+    controls.target.set(40, 40, 40);
+    controls.enabled = false;
+    controls.minDistance = 5;
+    controls.maxDistance = 20;
+
+  // Create OrbitControls to make the ball spin
+  
+    window.addEventListener('click', () => {
+        scene.remove(startBall); // Remove the start screen ball
+         // Remove start screen light if not reused
+    });
+  // Start the animation loop for the start screen
+    function animateStartScreen() {
+        if (!gameStarted) {
+            requestAnimationFrame(animateStartScreen);
+            startBall.rotation.x += 0.01; // Adjust speed as needed
+            //startBall.rotation.y += 0.01;
+            renderer.render(scene, camera);
+            controls.update();
+        }
+  }
+
+  animateStartScreen();
+}
+function animateStartScreen() {
+    function animate() {
+        if (animateStartBall) {
+            // Rotate the ball along its axes
+            startBall.rotation.x += 0.01; // Adjust speed as needed
+            startBall.rotation.y += 0.02;
+        }
+        renderer.render(scene, camera); // Render the scene
+        requestAnimationFrame(animate); // Call the next frame
+    }
+    animate(); // Start the animation loop
+}
+let gameStarted = false;
+document.addEventListener('click', function() {
+    if(!gameStarted){
+        gameStarted = true;
+        animate()
+    }
+})
+startScreen();
 
