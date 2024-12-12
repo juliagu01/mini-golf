@@ -79,6 +79,7 @@ const ball = new THREE.Mesh(new THREE.SphereGeometry(0.8 * ballRadius, 64, 32), 
 ball.castShadow = true;
 ball.position.y = -0.1;
 ball.receiveShadow = true;
+// ball.add(camera);
 scene.add(ball);
 
 sunlight.shadow.mapSize.width = 8192;
@@ -288,7 +289,7 @@ ballIndicator.computeLineDistances();
 scene.add(ballIndicator);
 
 let holeCenter = new THREE.Vector3(0, 0, 0);
-const holeRadius = 1.25;
+const holeRadius = 1.4;
 let holeBounds = [];
 
 let table = new THREE.Mesh(createTableWithHole(0, 0, holeRadius), tableMaterial);
@@ -491,6 +492,7 @@ function resetLevel() {
 
     launchCount = 0;
     updateLaunchCountText();
+    prepLaunch = true;
 }
 function loadLevel() {
     resetLevel();
@@ -537,7 +539,6 @@ function loadLevel() {
 
     updateLevelNumText();
     updateMaxLaunchCountText();
-    prepLaunch = true;
 }
 loadLevel();
 
@@ -581,7 +582,8 @@ window.addEventListener('keydown', (event) => {
     if (event.code === 'KeyR')
         resetLevel();
     if (event.code === 'KeyP')
-        console.log(ball.scale);
+    if (event.code === 'KeyP')
+        console.log(launchAngle);
 });
 
 
@@ -617,7 +619,7 @@ function animate() {
     const linearVelocity = adjustedVelocity.length();
     const angularVelocity = linearVelocity / ballRadius;
 
-    const axis = new THREE.Vector3(ballVelocity.x, 0, -ballVelocity.z).normalize();
+    const axis = new THREE.Vector3(ballVelocity.z, 0, -ballVelocity.x).normalize();
     axis.normalize()
     ball.rotateOnAxis(axis, angularVelocity);
 
@@ -669,7 +671,7 @@ function animate() {
     checkFloorCollision();
 
     // Ball in hole logic
-    if (ball.position.y <= -3) {
+    if (ball.position.y <= -2.5) {
         console.log(`level ${level} complete`);
         ballVelocity.set(0, 0, 0);
         // If launches remain, add as extra credit
@@ -697,6 +699,7 @@ function animate() {
         if (forwardVector.clone().cross(ballVelocity).dot(upVector) < 0)
             launchAngle *= -1;
         ballIndicator.setRotationFromAxisAngle(upVector, launchAngle);
+        ballIndicator.position.copy(ball.position);
         ballIndicator.visible = true;
         ballVelocity.set(0, 0, 0);
         prepLaunch = true;
