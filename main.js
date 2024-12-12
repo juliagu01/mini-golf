@@ -67,7 +67,7 @@ const bmap = textureLoader.load('textures/wood_0019_normal_directx_4k.png')
 const dmap = textureLoader.load('textures/wood_0019_height_4k.png')
 const clearcoatMap = textureLoader.load('textures/Scratched_gold_01_1K_Normal.png')
 
-const ballMaterial = new THREE.MeshPhongMaterial({
+const ballMaterial = new THREE.MeshPhysicalMaterial({
      color: 0xffffff,
      normalMap: normalMap1,
      clearcoatNormalMap: clearcoatMap,
@@ -91,8 +91,7 @@ sunlight.shadow.camera.left -= 50;
 sunlight.shadow.camera.right += 50;
 
 
-const helper = new THREE.CameraHelper(sunlight.shadow.camera);
-scene.add(helper);
+
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableZoom = false; // Disable zooming
@@ -128,8 +127,8 @@ loader.load('fonts/helvetiker_regular.typeface.json', function (font) {
 
 // Define materials
 
-const tableMaterial = new THREE.MeshPhongMaterial({ color: 0x00ff00, shininess: 100 });
-const wallMaterial = new THREE.MeshPhongMaterial({ color: 0x404040, shininess: 100 });
+const tableMaterial = new THREE.MeshPhongMaterial({ color: 0x00ff00, shininess: 50 });
+const wallMaterial = new THREE.MeshPhongMaterial({ color: 0x404040, shininess: 50 });
 const edgeMaterial = new THREE.MeshPhongMaterial({
     shininess: 100, 
     bumpMap:bmap,
@@ -140,7 +139,7 @@ const edgeMaterial = new THREE.MeshPhongMaterial({
    
     
 });
-const obstacleMaterial = new THREE.MeshPhongMaterial({ color: 0xf0d0b0, shininess: 100 });
+const obstacleMaterial = new THREE.MeshPhongMaterial({ color: 0xf0d0b0, shininess: 50 });
 
 
 // Object modeling helper functions
