@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
-import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
+import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
 import { levelSpecs } from './data.json';
 import { Sky } from 'three/addons/objects/Sky.js';
 
@@ -715,6 +715,8 @@ function startScreen(){
     
 
   // Add lighting and golf ball for start screen
+
+    const fontLoader = new FontLoader();
     const light = new THREE.AmbientLight(0xffffff, 1);
     scene.add(light);
     let startBall = new THREE.Mesh(new THREE.SphereGeometry(0.8 * ballRadius, 64, 32), ballMaterial);
@@ -724,6 +726,8 @@ function startScreen(){
     scene.add(startBall);
 
     startBall.position.set(40, 40, 40);
+    camera.position.set(40, 40, 60); // Set the camera position higher
+    camera.lookAt(new THREE.Vector3(40, 40, 0)); // Focus on the center of the scene
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableZoom = false; // Disable zooming
@@ -734,37 +738,45 @@ function startScreen(){
     controls.minDistance = 5;
     controls.maxDistance = 20;
 
-  // Create OrbitControls to make the ball spin
+    fontLoader.load("fonts/helvetiker_regular.typeface.json", (font)=>{
+        const textMaterials = new THREE.MeshStandardMaterial({color:0xfffffff});
+
+        const topTextGeometry = new TextGeometry('Welcome to Mini Golf!', {
+            font: font,
+            size: 0.75,
+            height: 1,
+            curveSegments: 12,
+          });
+      
+          const topTextMesh = new THREE.Mesh(topTextGeometry, textMaterials);
+          topTextGeometry.center(); // Center the text geometry
+          topTextMesh.position.set(40, 43, 40); // Position above the ball
+          scene.add(topTextMesh);
+      
   
     window.addEventListener('click', () => {
-        scene.remove(startBall); // Remove the start screen ball
-         // Remove start screen light if not reused
+            scene.remove(startBall);
+            scene.remove(topTextMesh); 
+            const pulseText = document.getElementById('pulse-text');
+            if (pulseText) {
+            pulseText.style.display = 'none';
+            }
     });
   // Start the animation loop for the start screen
     function animateStartScreen() {
         if (!gameStarted) {
             requestAnimationFrame(animateStartScreen);
-            startBall.rotation.x += 0.01; // Adjust speed as needed
-            //startBall.rotation.y += 0.01;
+                //startBall.rotation.x += 0.01; // Adjust speed as needed
+                startBall.rotation.y += 0.01;
             renderer.render(scene, camera);
             controls.update();
         }
   }
 
   animateStartScreen();
+    })
 }
-function animateStartScreen() {
-    function animate() {
-        if (animateStartBall) {
-            // Rotate the ball along its axes
-            startBall.rotation.x += 0.01; // Adjust speed as needed
-            startBall.rotation.y += 0.02;
-        }
-        renderer.render(scene, camera); // Render the scene
-        requestAnimationFrame(animate); // Call the next frame
-    }
-    animate(); // Start the animation loop
-}
+
 let gameStarted = false;
 document.addEventListener('click', function() {
     if(!gameStarted){
