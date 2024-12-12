@@ -1,9 +1,17 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
-import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
+import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
 import { levelSpecs } from './data.json';
-import {ShadowMesh} from 'three/addons/objects/ShadowMesh.js';
+import { Sky } from 'three/addons/objects/Sky.js';
+
+const startScene = new THREE.Scene()
+const startCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+startCamera.position.z = 5;
+
+
+
+
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0096ff);
@@ -18,23 +26,60 @@ renderer.shadowMap.type = THREE.PCFShadowMap;
 renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
 
+//sky
+const sky = new Sky();
+sky.scale.setScalar( 4500 );
 
+const uniforms = sky.material.uniforms;
+uniforms[ 'turbidity' ].value = 0.1;
+uniforms[ 'rayleigh' ].value = 0.312;
+uniforms[ 'mieCoefficient' ].value = 0.035;
+uniforms[ 'mieDirectionalG' ].value = 0.754;
 
-const pointLight = new THREE.PointLight(0xffffff, 100, 100);
+const phi = (90 * Math.PI/180) + 4 ;
+const theta = 180 * Math.PI/180;
+const sunPosition = new THREE.Vector3().setFromSphericalCoords( 100, phi, theta );
+
+sky.material.uniforms.sunPosition.value = sunPosition;
+
+scene.add( sky );
+
+const pointLight = new THREE.PointLight(0xffffff, 1, 0, 2);
 pointLight.position.set(10, 5, 5); // Position the light
 scene.add(pointLight);
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
 directionalLight.position.set(0.5, .0, 1.0).normalize();
-scene.add(directionalLight);
+//scene.add(directionalLight);
 
 const ambientLight = new THREE.AmbientLight(0x505050);  // Soft white light
 scene.add(ambientLight);
 
-const sunlight = new THREE.DirectionalLight('rgb(255,255,255)', 3); // White light, intensity of 1
-sunlight.position.set(10, 20, -1); // X, Y, Z coordinates
+const sunlight = new THREE.DirectionalLight('rgb(255,255,255)', 2); // White light, intensity of 1
+sunlight.position.copy(sunPosition); // X, Y, Z coordinates
 sunlight.castShadow = true;
 scene.add(sunlight);
+
+const textureLoader = new THREE.TextureLoader();
+const normalMap1 = textureLoader.load('textures/golfball.jpg');
+const normalMap2 = textureLoader.load('textures/wood_0019_color_4k.jpg')
+const bmap = textureLoader.load('textures/wood_0019_normal_directx_4k.png')
+const dmap = textureLoader.load('textures/wood_0019_height_4k.png')
+const clearcoatMap = textureLoader.load('textures/Scratched_gold_01_1K_Normal.png')
+
+const ballMaterial = new THREE.MeshPhysicalMaterial({
+     color: 0xffffff,
+     normalMap: normalMap1,
+     clearcoatNormalMap: clearcoatMap,
+     clearcoat: 1.0
+     });
+const ballRadius = 1;
+
+const ball = new THREE.Mesh(new THREE.SphereGeometry(0.8 * ballRadius, 64, 32), ballMaterial);
+ball.castShadow = true;
+ball.position.y = -0.1;
+ball.receiveShadow = true;
+scene.add(ball);
 
 sunlight.shadow.mapSize.width = 8192;
 sunlight.shadow.mapSize.height = 8192;
@@ -46,17 +91,16 @@ sunlight.shadow.camera.left -= 50;
 sunlight.shadow.camera.right += 50;
 
 
-//const helper = new THREE.CameraHelper(sunlight.shadow.camera);
-//scene.add(helper);
+
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableZoom = false; // Disable zooming
 controls.enablePan = false; // Disable panning
 controls.autoRotate = false;
-controls.target.set(0, 0, 0);
+controls.target.copy(ball.position);
 controls.enabled = true;
 controls.minDistance = 10;
-controls.maxDistance = 50;
+controls.maxDistance = 25;
 
 const mapWidth = 17;
 const mapHeight = 32;
@@ -82,21 +126,9 @@ loader.load('fonts/helvetiker_regular.typeface.json', function (font) {
 
 
 // Define materials
-const textureLoader = new THREE.TextureLoader();
-const normalMap1 = textureLoader.load('textures/golfball.jpg');
-const normalMap2 = textureLoader.load('textures/wood_0019_color_4k.jpg')
-const bmap = textureLoader.load('textures/wood_0019_normal_directx_4k.png')
-const dmap = textureLoader.load('textures/wood_0019_height_4k.png')
-const clearcoatMap = textureLoader.load('textures/Scratched_gold_01_1K_Normal.png')
 
-const ballMaterial = new THREE.MeshPhysicalMaterial({
-     color: 0xffffff,
-     normalMap: normalMap1,
-     clearcoatNormalMap: clearcoatMap,
-     clearcoat: 1.0
-     });
-const tableMaterial = new THREE.MeshPhongMaterial({ color: 0x00ff00, shininess: 100 });
-const wallMaterial = new THREE.MeshPhongMaterial({ color: 0x404040, shininess: 100 });
+const tableMaterial = new THREE.MeshPhongMaterial({ color: 0x00ff00, shininess: 50 });
+const wallMaterial = new THREE.MeshPhongMaterial({ color: 0x404040, shininess: 50 });
 const edgeMaterial = new THREE.MeshPhongMaterial({
     shininess: 100, 
     bumpMap:bmap,
@@ -107,7 +139,7 @@ const edgeMaterial = new THREE.MeshPhongMaterial({
    
     
 });
-const obstacleMaterial = new THREE.MeshPhongMaterial({ color: 0xf0d0b0, shininess: 100 });
+const obstacleMaterial = new THREE.MeshPhongMaterial({ color: 0xf0d0b0, shininess: 50 });
 
 
 // Object modeling helper functions
@@ -238,13 +270,8 @@ function createRampBound(ramp, ball, boundsArr) {
 // Create objects
 
 let level = 1;
-const ballRadius = 1;
 
-const ball = new THREE.Mesh(new THREE.SphereGeometry(0.8 * ballRadius, 64, 32), ballMaterial);
-ball.castShadow = true;
-ball.position.y = -0.1;
-ball.receiveShadow = true;
-scene.add(ball);
+
 
 const ballIndicatorGeometry = new THREE.BufferGeometry();
 ballIndicatorGeometry.setFromPoints([
@@ -319,6 +346,14 @@ powerBarMesh.position.set(window.innerWidth / 2 - 100, window.innerHeight / 2 - 
 // //Debug command to see if powerbar is created
 // console.log(uiScene.children)
 
+function onWindowResize(){
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+
+}
+
+window.addEventListener('resize', onWindowResize);
 
 // // Resize listener for responsive positioning
 // window.addEventListener('resize', () => {
@@ -569,7 +604,9 @@ function animate() {
     }
 
     // Update ball velocity
-    ballVelocity.y -= 0.01;  // gravity
+   
+    ballVelocity.y -= 0.02;  // gravity
+
     ballVelocity.multiplyScalar(0.98);  // friction
 
     // Update ball position based on velocity
@@ -580,8 +617,9 @@ function animate() {
     const linearVelocity = adjustedVelocity.length();
     const angularVelocity = linearVelocity / ballRadius;
 
-    const axis = new THREE.Vector3(ballVelocity.z, 0, -ballVelocity.x).normalize();
-    ball.rotateOnWorldAxis(axis, angularVelocity);
+    const axis = new THREE.Vector3(ballVelocity.x, 0, -ballVelocity.z).normalize();
+    axis.normalize()
+    ball.rotateOnAxis(axis, angularVelocity);
 
     // Manual raytracing for collision detection
     const ray = new THREE.Ray(pastPos).lookAt(ball.position);
@@ -671,6 +709,9 @@ function animate() {
     }
 
     // Render the game scene
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
     controls.target.copy(ball.position);
     controls.update();
     renderer.render(scene, camera);
@@ -683,5 +724,78 @@ function animate() {
     // Render the map scene with its own orthographic camera
     mapRenderer.render(scene, mapCamera);
 }
-animate();
+function startScreen(){
+    
+
+  // Add lighting and golf ball for start screen
+
+    const fontLoader = new FontLoader();
+    const light = new THREE.AmbientLight(0xffffff, 1);
+    scene.add(light);
+    let startBall = new THREE.Mesh(new THREE.SphereGeometry(0.8 * ballRadius, 64, 32), ballMaterial);
+    startBall.castShadow = true;
+    
+    startBall.receiveShadow = true;
+    scene.add(startBall);
+
+    startBall.position.set(40, 40, 40);
+    camera.position.set(40, 40, 60); // Set the camera position higher
+    camera.lookAt(new THREE.Vector3(40, 40, 0)); // Focus on the center of the scene
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableZoom = false; // Disable zooming
+    controls.enablePan = false; // Disable panning
+    controls.autoRotate = false;
+    controls.target.set(40, 40, 40);
+    controls.enabled = false;
+    controls.minDistance = 5;
+    controls.maxDistance = 20;
+
+    fontLoader.load("fonts/helvetiker_regular.typeface.json", (font)=>{
+        const textMaterials = new THREE.MeshStandardMaterial({color:0xfffffff});
+
+        const topTextGeometry = new TextGeometry('Welcome to Mini Golf!', {
+            font: font,
+            size: 0.75,
+            height: 1,
+            curveSegments: 12,
+          });
+      
+          const topTextMesh = new THREE.Mesh(topTextGeometry, textMaterials);
+          topTextGeometry.center(); // Center the text geometry
+          topTextMesh.position.set(40, 43, 40); // Position above the ball
+          scene.add(topTextMesh);
+      
+         
+        window.addEventListener('click', () => {
+            scene.remove(startBall);
+            scene.remove(topTextMesh); 
+            const pulseText = document.getElementById('pulse-text');
+            if (pulseText) {
+            pulseText.style.display = 'none';
+            }
+        });
+    // Start the animation loop for the start screen
+        function animateStartScreen() {
+            if (!gameStarted) {
+                requestAnimationFrame(animateStartScreen);
+                //startBall.rotation.x += 0.01; // Adjust speed as needed
+                startBall.rotation.y += 0.01;
+                renderer.render(scene, camera);
+                controls.update();
+            }
+    }
+
+    animateStartScreen();
+    })
+}
+
+let gameStarted = false;
+document.addEventListener('click', function() {
+    if(!gameStarted){
+        gameStarted = true;
+        animate()
+    }
+})
+startScreen();
 
