@@ -570,7 +570,7 @@ function animate() {
 
     // Update ball velocity
     ballVelocity.y -= 0.01;  // gravity
-    ballVelocity.multiplyScalar(0.95);  // friction
+    ballVelocity.multiplyScalar(0.98);  // friction
 
     // Update ball position based on velocity
     ball.position.add(ballVelocity);
