@@ -346,6 +346,14 @@ powerBarMesh.position.set(window.innerWidth / 2 - 100, window.innerHeight / 2 - 
 // //Debug command to see if powerbar is created
 // console.log(uiScene.children)
 
+function onWindowResize(){
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+
+}
+
+window.addEventListener('resize', onWindowResize);
 
 // // Resize listener for responsive positioning
 // window.addEventListener('resize', () => {
@@ -699,6 +707,9 @@ function animate() {
     }
 
     // Render the game scene
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
     controls.target.copy(ball.position);
     controls.update();
     renderer.render(scene, camera);
@@ -753,27 +764,27 @@ function startScreen(){
           topTextMesh.position.set(40, 43, 40); // Position above the ball
           scene.add(topTextMesh);
       
-  
-    window.addEventListener('click', () => {
+         
+        window.addEventListener('click', () => {
             scene.remove(startBall);
             scene.remove(topTextMesh); 
             const pulseText = document.getElementById('pulse-text');
             if (pulseText) {
             pulseText.style.display = 'none';
             }
-    });
-  // Start the animation loop for the start screen
-    function animateStartScreen() {
-        if (!gameStarted) {
-            requestAnimationFrame(animateStartScreen);
+        });
+    // Start the animation loop for the start screen
+        function animateStartScreen() {
+            if (!gameStarted) {
+                requestAnimationFrame(animateStartScreen);
                 //startBall.rotation.x += 0.01; // Adjust speed as needed
                 startBall.rotation.y += 0.01;
-            renderer.render(scene, camera);
-            controls.update();
-        }
-  }
+                renderer.render(scene, camera);
+                controls.update();
+            }
+    }
 
-  animateStartScreen();
+    animateStartScreen();
     })
 }
 
