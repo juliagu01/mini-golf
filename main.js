@@ -8,23 +8,22 @@ import { levelSpecs } from './data.json';
 import { createTableWithHole, createRampGeometry, createBoxBound, createRampBound } from './objects.js';
 
 
-const startScene = new THREE.Scene()
-const startCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-startCamera.position.z = 5;
-
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0096ff);
 
-const camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, 0.1, 1000 );
-camera.position.set(0, 10, 20);
-camera.lookAt(0, 0, 0);
+const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 1000);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
 renderer.setSize( window.innerWidth, window.innerHeight );
-document.body.appendChild( renderer.domElement );
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableZoom = false; // Disable zooming
+controls.autoRotate = false;
+
 
 //sky
 const sky = new Sky();
@@ -93,15 +92,6 @@ sunlight.shadow.camera.right += 50;
 
 
 
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableZoom = false; // Disable zooming
-controls.enablePan = false; // Disable panning
-controls.autoRotate = false;
-controls.target.copy(ball.position);
-controls.enabled = true;
-controls.minDistance = 25;
-controls.maxDistance = 25;
-
 const mapWidth = 17;
 const mapHeight = 32;
 const mapRenderer = new THREE.WebGLRenderer({ antialias: true });
@@ -140,18 +130,6 @@ const edgeMaterial = new THREE.MeshPhongMaterial({
     
 });
 const obstacleMaterial = new THREE.MeshPhongMaterial({ color: 0xf0d0b0, shininess: 50 });
-
-
-// Object modeling helper functions
-
-let boxBounds = [];
-let rampBounds = [];
-
-
-// Create objects
-
-let level = 1;
-
 
 
 const ballIndicatorGeometry = new THREE.BufferGeometry();
@@ -280,7 +258,6 @@ function updateMaxLaunchCountText() {
     }
 }
 
-
 // Create launch count geometry and material
 let launchCountMesh = null;
 function updateLaunchCountText() {
@@ -293,7 +270,6 @@ function updateLaunchCountText() {
         uiScene.add(launchCountMesh);
     }
 }
-
 
 // Create launch count geometry and material
 let extraCreditAmountMesh = null;
@@ -319,9 +295,12 @@ const upVector = new THREE.Vector3(0, 1, 0);
 
 
 // Level properties
+let level = 1;
 let prepLaunch = true;
 let launchCount = 0;
 let extraCreditAmount = 0;
+let boxBounds = [];
+let rampBounds = [];
 
 
 // Restore states on level start and restart
@@ -335,6 +314,9 @@ function resetLevel() {
 
     launchCount = 0;
     updateLaunchCountText();
+
+    restrictControls();
+    loosenControls();
     prepLaunch = true;
 }
 function loadLevel() {
@@ -386,6 +368,31 @@ function loadLevel() {
 loadLevel();
 
 
+// Camera control
+function restrictControls() {
+    controls.target.copy(ball.position);
+    controls.minPolarAngle = Math.PI * 3 / 8;
+    controls.maxPolarAngle = Math.PI * 3 / 8;
+    controls.minAzimuthAngle = launchAngle;
+    controls.maxAzimuthAngle = launchAngle;
+    controls.minDistance = 25;
+    controls.maxDistance = 25;
+    controls.saveState();
+    controls.reset();
+    controls.enabled = false;
+}
+
+function loosenControls() {
+    controls.enabled = true;
+    controls.minPolarAngle = 0;
+    controls.maxPolarAngle = Math.PI;
+    controls.minAzimuthAngle = Infinity;
+    controls.maxAzimuthAngle = Infinity;
+    controls.minDistance = 0;
+    controls.maxDistance = Infinity;
+}
+
+
 // Function to apply a force to the ball
 function applyForce(force) {
     ballVelocity.add(force);
@@ -403,30 +410,39 @@ function checkFloorCollision() {
 let power = 0;  // 0-1
 // Launch iff space is pressed AND last launch has finished
 window.addEventListener('keydown', (event) => {
-    if (event.code === 'Space' && prepLaunch) {
-        launchCount++;
-        updateLaunchCountText();
-        console.log(`launch ${launchCount} start`);
-        // Calculate the direction vector from the launch angle
-        const direction = forwardVector.clone();
-        direction.applyAxisAngle(upVector, launchAngle);
-        ballVelocity.addScaledVector(direction, power);
-        ballIndicator.visible = false;
-        prepLaunch = false;
+    if (gameStarted) {
+        if (event.code === 'Space' && prepLaunch) {
+            launchCount++;
+            updateLaunchCountText();
+            console.log(`launch ${launchCount} start`);
+            // Calculate the direction vector from the launch angle
+            const direction = forwardVector.clone();
+            direction.applyAxisAngle(upVector, launchAngle);
+            ballVelocity.addScaledVector(direction, power);
+            ballIndicator.visible = false;
+
+            restrictControls();
+            prepLaunch = false;
+        }
+        if (event.code === 'ArrowLeft' && prepLaunch) {
+            launchAngle += Math.PI / 60;
+            ballIndicator.setRotationFromAxisAngle(upVector, launchAngle);
+            restrictControls();
+            loosenControls();
+        }
+        if (event.code === 'ArrowRight' && prepLaunch) {
+            launchAngle -= Math.PI / 60;
+            ballIndicator.setRotationFromAxisAngle(upVector, launchAngle);
+            restrictControls();
+            loosenControls();
+        }
+        if (event.code === 'KeyR')
+            resetLevel();
+        if (event.code === 'KeyP') {
+            console.log(controls.target);
+            console.log(camera.position);
+        }
     }
-    if (event.code === 'ArrowLeft' && prepLaunch) {
-        launchAngle += Math.PI / 60;
-        ballIndicator.setRotationFromAxisAngle(upVector, launchAngle);
-    }
-    if (event.code === 'ArrowRight' && prepLaunch) {
-        launchAngle -= Math.PI / 60;
-        ballIndicator.setRotationFromAxisAngle(upVector, launchAngle);
-    }
-    if (event.code === 'KeyR')
-        resetLevel();
-    if (event.code === 'KeyP')
-    if (event.code === 'KeyP')
-        console.log(launchAngle);
 });
 
 
@@ -508,13 +524,22 @@ function animate() {
         ball.position.copy(reducedPosition);
         ball.updateMatrixWorld();
         ballVelocity.reflect(reflectionPlane.normal).multiplyScalar(bounceCoefficient);
+
+        // Update camera
+        const flattenedVelocity = ballVelocity.clone();
+        flattenedVelocity.y = 0;
+        let cameraAngle = flattenedVelocity.angleTo(forwardVector);
+        if (forwardVector.clone().cross(flattenedVelocity).dot(upVector) < 0)
+            cameraAngle *= -1;
+        controls.minAzimuthAngle = cameraAngle;
+        controls.maxAzimuthAngle = cameraAngle;
     }
 
     // Check for floor collision
     checkFloorCollision();
 
     // Ball in hole logic
-    if (ball.position.y <= -2.5) {
+    if (ball.position.y <= -3) {
         console.log(`level ${level} complete`);
         ballVelocity.set(0, 0, 0);
         // If launches remain, add as extra credit
@@ -545,6 +570,9 @@ function animate() {
         ballIndicator.position.copy(ball.position);
         ballIndicator.visible = true;
         ballVelocity.set(0, 0, 0);
+
+        restrictControls();
+        loosenControls();
         prepLaunch = true;
 
         // If the max launch count is reached without reaching the goal, restart the level
@@ -558,6 +586,7 @@ function animate() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
+
     controls.target.copy(ball.position);
     controls.update();
     renderer.render(scene, camera);
@@ -588,14 +617,8 @@ function startScreen(){
     camera.position.set(40, 40, 60); // Set the camera position higher
     camera.lookAt(new THREE.Vector3(40, 40, 0)); // Focus on the center of the scene
 
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableZoom = false; // Disable zooming
-    controls.enablePan = false; // Disable panning
-    controls.autoRotate = false;
     controls.target.set(40, 40, 40);
     controls.enabled = false;
-    controls.minDistance = 5;
-    controls.maxDistance = 20;
 
     fontLoader.load("fonts/helvetiker_regular.typeface.json", (font)=>{
         const textMaterials = new THREE.MeshStandardMaterial({color:0xfffffff});
@@ -603,7 +626,7 @@ function startScreen(){
         const topTextGeometry = new TextGeometry('Welcome to Mini Golf!', {
             font: font,
             size: 0.75,
-            height: 1,
+            depth: 1,
             curveSegments: 12,
           });
       
@@ -638,9 +661,13 @@ function startScreen(){
 
 let gameStarted = false;
 document.addEventListener('click', function() {
-    if(!gameStarted){
+    if (!gameStarted){
         gameStarted = true;
-        animate()
+        camera.position.copy(new THREE.Vector3(0, 10, 20));
+        camera.lookAt(new THREE.Vector3(0, 0, 0));
+        restrictControls();
+        loosenControls();
+        animate();
     }
 })
 startScreen();
