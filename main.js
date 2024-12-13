@@ -60,23 +60,27 @@ sunlight.castShadow = true;
 scene.add(sunlight);
 
 const textureLoader = new THREE.TextureLoader();
-const normalMap1 = textureLoader.load('textures/golfball.jpg');
-const normalMap2 = textureLoader.load('textures/wood_0019_color_4k.jpg')
-const bmap = textureLoader.load('textures/wood_0019_normal_directx_4k.png')
-const dmap = textureLoader.load('textures/wood_0019_height_4k.png')
-const clearcoatMap = textureLoader.load('textures/Scratched_gold_01_1K_Normal.png')
+const mapBall = textureLoader.load('textures/paper_0022_4k/ao.jpg');
+const bmapBall = textureLoader.load('textures/paper_0022_4k/normal_direct.png');
+const dmapBall = textureLoader.load('textures/paper_0022_4k/height.png');
+const normalMapWood = textureLoader.load('textures/wood_0019_4k/color.jpg')
+const bmapWood = textureLoader.load('textures/wood_0019_4k/normal_directx.png')
+const dmapWood = textureLoader.load('textures/wood_0019_4k/height.png')
 
 const ballMaterial = new THREE.MeshPhysicalMaterial({
-     color: 0xffffff,
-     normalMap: normalMap1,
-     clearcoatNormalMap: clearcoatMap,
-     clearcoat: 1.0
-     });
+    color: 0xffffff,
+    map: mapBall,
+    bumpMap: bmapBall,
+    bumpScale: 2,
+    displacementMap: dmapBall,
+    displacementScale: 5,
+    displacementBias: -2.65
+});
 const ballRadius = 1;
 
-const ball = new THREE.Mesh(new THREE.SphereGeometry(0.8 * ballRadius, 64, 32), ballMaterial);
+const ball = new THREE.Mesh(new THREE.SphereGeometry(ballRadius, 64, 32), ballMaterial);
 ball.castShadow = true;
-ball.position.y = -0.1;
+ball.position.y = 0;
 ball.receiveShadow = true;
 scene.add(ball);
 
@@ -121,13 +125,11 @@ const tableMaterial = new THREE.MeshPhongMaterial({ color: 0x00ff00, shininess: 
 const wallMaterial = new THREE.MeshPhongMaterial({ color: 0x404040, shininess: 50 });
 const edgeMaterial = new THREE.MeshPhongMaterial({
     shininess: 100, 
-    bumpMap:bmap,
+    bumpMap: bmapWood,
     bumpScale: 50,
-    displacementMap: dmap,
+    displacementMap: dmapWood,
     displacementScale: 0,
-    map: normalMap2, 
-   
-    
+    map: normalMapWood
 });
 const obstacleMaterial = new THREE.MeshPhongMaterial({ color: 0xf0d0b0, shininess: 50 });
 
@@ -144,7 +146,7 @@ const holeRadius = ballRadius + 0.4;
 let holeBounds = [];
 
 let table = new THREE.Mesh(createTableWithHole(0, 0, holeRadius), tableMaterial);
-table.position.y = -0.9 * ballRadius;
+table.position.y = 0 - ballRadius;
 table.rotateX(Math.PI/2);
 table.receiveShadow  = true;
 scene.add(table);
@@ -340,7 +342,7 @@ function loadLevel() {
 
     // Update table
     table.geometry = createTableWithHole(...(levelSpec.holePos), holeRadius)
-    holeCenter = new THREE.Vector3(levelSpec.holePos[0], -0.9 * ballRadius, levelSpec.holePos[1]);
+    holeCenter = new THREE.Vector3(levelSpec.holePos[0], 0 - ballRadius, levelSpec.holePos[1]);
     holeBounds = [{
         object: { position: holeCenter },
         simpleBound: new THREE.Box3().setFromCenterAndSize(holeCenter, new THREE.Vector3(
@@ -416,8 +418,8 @@ function applyForce(force) {
   // Function to handle collisions with the floor
 function checkFloorCollision() {
     const projectedHoleCenter = new THREE.Vector3(holeCenter.x, ball.position.y, holeCenter.z);
-    if (ball.position.distanceTo(projectedHoleCenter) > holeRadius && ball.position.y <= -.1 * ballRadius) {
-        ball.position.y = -.1 * ballRadius;
+    if (ball.position.distanceTo(projectedHoleCenter) > holeRadius && ball.position.y <= 0) {
+        ball.position.y = 0;
         ballVelocity.y *= -1 * bounceCoefficient; // Bounce with energy loss
     }
 }
@@ -650,7 +652,7 @@ function startScreen(){
     const fontLoader = new FontLoader();
     const light = new THREE.AmbientLight(0xffffff, 1);
     scene.add(light);
-    let startBall = new THREE.Mesh(new THREE.SphereGeometry(0.8 * ballRadius, 64, 32), ballMaterial);
+    let startBall = new THREE.Mesh(new THREE.SphereGeometry(ballRadius, 64, 32), ballMaterial);
     startBall.castShadow = true;
     
     startBall.receiveShadow = true;
