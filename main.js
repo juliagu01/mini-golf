@@ -345,7 +345,8 @@ function loadLevel() {
     holeCenter = new THREE.Vector3(levelSpec.holePos[0], 0 - ballRadius, levelSpec.holePos[1]);
     const holeDepthCenter = holeCenter.clone().sub(upVector);
     holeBounds = [{
-        object: { position: holeDepthCenter },
+        object: {
+            position: holeDepthCenter, rotation: new THREE.Euler() },
         simpleBound: new THREE.Box3().setFromCenterAndSize(holeDepthCenter, new THREE.Vector3(
             holeRadius + 0.001,
             1.5,
@@ -363,8 +364,9 @@ function loadLevel() {
     for (const { object } of boxBounds)
         scene.remove(object);
     boxBounds = [];
-    for (const { dims, pos } of levelSpec.boxes) {
+    for (const { dims, pos, rotation } of levelSpec.boxes) {
         let box = new THREE.Mesh(new THREE.BoxGeometry(...dims), obstacleMaterial);
+        box.rotateY(rotation * Math.PI / 180);
         box.position.set(...pos);
         box.castShadow = true;
         box.receiveShadow = true;
@@ -376,8 +378,9 @@ function loadLevel() {
     for (const { object } of rampBounds)
         scene.remove(object);
     rampBounds = [];
-    for (const { dims, pos } of levelSpec.ramps) {
+    for (const { dims, pos, rotation } of levelSpec.ramps) {
         let ramp = new THREE.Mesh(createRampGeometry(...dims), obstacleMaterial);
+        ramp.rotateY(rotation * Math.PI / 180);
         ramp.position.set(...pos);
         ramp.castShadow = true;
         ramp.receiveShadow = true;
@@ -445,9 +448,9 @@ window.addEventListener('keydown', (event) => {
             if (event.code === 'KeyW')
                 translation.setY(0);
             if (event.code === 'KeyD')
-                translation.set(translation.z, 0, -translation.x).multiplyScalar(-1);
+                translation.set(translation.z, 0, -translation.x).negate();
             if (event.code === 'KeyS')
-                translation.setY(0).multiplyScalar(-1);
+                translation.setY(0).negate();
             if (event.code === 'ArrowUp')
                 translation.set(0, 1, 0);
             if (event.code === 'ArrowDown' && camera.position.y > 1)
@@ -489,8 +492,7 @@ window.addEventListener('keydown', (event) => {
         if (event.code === 'KeyR')
             resetLevel();
         if (event.code === 'KeyP') {
-            console.log(controls.target);
-            console.log(camera.position);
+            console.log(ball.position);
         }
     }
 });
@@ -545,9 +547,9 @@ function animate() {
             const indices = bound.getAttribute("position").array;
             for (let i = 0; i < indices.length; i += 9) {
                 const vertices = [];
-                vertices.push(new THREE.Vector3().fromArray(indices, i + 0).add(object.position));
-                vertices.push(new THREE.Vector3().fromArray(indices, i + 3).add(object.position));
-                vertices.push(new THREE.Vector3().fromArray(indices, i + 6).add(object.position));
+                vertices.push(new THREE.Vector3().fromArray(indices, i + 0).applyAxisAngle(upVector, object.rotation.y).add(object.position));
+                vertices.push(new THREE.Vector3().fromArray(indices, i + 3).applyAxisAngle(upVector, object.rotation.y).add(object.position));
+                vertices.push(new THREE.Vector3().fromArray(indices, i + 6).applyAxisAngle(upVector, object.rotation.y).add(object.position));
 
                 const intersection = new THREE.Vector3();
                 if (ray.intersectTriangle(...vertices, true, intersection)) {
@@ -609,8 +611,8 @@ function animate() {
         }
     }
 
-    // Determine end of launch (note to self: should check that acceleration is 0 too!!)
-    if (!prepLaunch && ballVelocity.length() < 0.03) {
+    // Determine end of launch
+    if (!prepLaunch && ballVelocity.length() < 0.03 && ball.position.y < 0.05) {
         console.log(`launch ${launchCount} end`);
         ballVelocity.y = 0;
         launchAngle = ballVelocity.angleTo(forwardVector);
@@ -671,7 +673,7 @@ function startScreen(){
     controls.enabled = false;
 
     fontLoader.load("fonts/helvetiker_regular.typeface.json", (font)=>{
-        const textMaterials = new THREE.MeshStandardMaterial({color:0xf0f0f0});
+        const textMaterials = new THREE.MeshStandardMaterial({color:0x1060d0});
 
         const topTextGeometry1 = new TextGeometry('Paper', {
             font: font,
