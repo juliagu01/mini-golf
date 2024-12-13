@@ -194,7 +194,7 @@ const powerBarMesh = new THREE.Mesh(powerBarGeometry, powerBarMaterial);
 uiScene.add(powerBarMesh);
 
 // Position the power bar in the top-right corner
-powerBarMesh.position.set(window.innerWidth / 2 - 100, window.innerHeight / 2 - 30, -0.1); // Position slightly inside from the edge
+powerBarMesh.position.set(uiCamera.right - 100, uiCamera.top - 30, -0.1); // Position slightly inside from the edge
 // //Debug command to see if powerbar is created
 // console.log(uiScene.children)
 
@@ -203,6 +203,19 @@ function onWindowResize(){
     camera.aspect = window.innerWidth/window.innerHeight;
     camera.updateProjectionMatrix();
 
+    uiCamera.left = -window.innerWidth / 2;
+    uiCamera.right = window.innerWidth / 2;
+    uiCamera.top = window.innerHeight / 2;
+    uiCamera.bottom = -window.innerHeight / 2;
+    uiCamera.updateProjectionMatrix();
+
+    for (const { mesh, x } of textMeshes)
+        mesh.position.set(uiCamera.left + x, uiCamera.top - 35, -0.1);
+    levelNumMesh.position.set(uiCamera.left + 75, uiCamera.top - 35, -0.1);
+    maxLaunchCountMesh.position.set(uiCamera.left + 250, uiCamera.top - 35, -0.1);
+    launchCountMesh.position.set(uiCamera.left + 400, uiCamera.top - 35, -0.1);
+    extraCreditAmountMesh.position.set(uiCamera.left + 550, uiCamera.top - 35, -0.1);
+    powerBarMesh.position.set(uiCamera.right - 100, uiCamera.top - 30, -0.1);
 }
 
 window.addEventListener('resize', onWindowResize);
@@ -210,6 +223,7 @@ window.addEventListener('resize', onWindowResize);
 
 // Create text geometry and material
 // Credit: https://github.com/mrdoob/three.js/blob/master/examples/webgl_geometry_text.html
+const textMeshes = [];
 let textSpecs = [
     { text: "Level", x: 25 },
     { text: "Max launches:", x: 125 },
@@ -221,7 +235,8 @@ function createHubText() {
     for (const { text, x } of textSpecs) {
         const textGeometry = new TextGeometry(text, { font: hubFont, size: 12, depth: -1 });
         const textMesh = new THREE.Mesh(textGeometry, textMaterial);
-        textMesh.position.set(window.innerWidth / -2 + x, window.innerHeight / 2 - 35, -0.1);
+        textMesh.position.set(uiCamera.left + x, uiCamera.top - 35, -0.1);
+        textMeshes.push({ mesh: textMesh, x: x });
         uiScene.add(textMesh);
     }
     updateLevelNumText();
@@ -239,7 +254,7 @@ function updateLevelNumText() {
     if (hubFont) {
         const levelNumGeometry = new TextGeometry(level + "", { font: hubFont, size: 12, depth: -1 });
         levelNumMesh = new THREE.Mesh(levelNumGeometry, textMaterial);
-        levelNumMesh.position.set(window.innerWidth / -2 + 75, window.innerHeight / 2 - 35, -0.1);
+        levelNumMesh.position.set(uiCamera.left + 75, uiCamera.top - 35, -0.1);
         uiScene.add(levelNumMesh);
     }
 }
@@ -253,7 +268,7 @@ function updateMaxLaunchCountText() {
     if (hubFont) {
         const maxLaunchCountGeometry = new TextGeometry(levelSpecs[level - 1].maxLaunches + "", { font: hubFont, size: 12, depth: -1 });
         maxLaunchCountMesh = new THREE.Mesh(maxLaunchCountGeometry, textMaterial);
-        maxLaunchCountMesh.position.set(window.innerWidth / -2 + 250, window.innerHeight / 2 - 35, -0.1);
+        maxLaunchCountMesh.position.set(uiCamera.left + 250, uiCamera.top - 35, -0.1);
         uiScene.add(maxLaunchCountMesh);
     }
 }
@@ -266,7 +281,7 @@ function updateLaunchCountText() {
     if (hubFont) {
         const launchCountGeometry = new TextGeometry(launchCount + "", { font: hubFont, size: 12, depth: -1 });
         launchCountMesh = new THREE.Mesh(launchCountGeometry, textMaterial);
-        launchCountMesh.position.set(window.innerWidth / -2 + 400, window.innerHeight / 2 - 35, -0.1);
+        launchCountMesh.position.set(uiCamera.left + 400, uiCamera.top - 35, -0.1);
         uiScene.add(launchCountMesh);
     }
 }
@@ -279,7 +294,7 @@ function updateExtraCreditAmountText() {
     if (hubFont) {
         const extraCreditAmountGeometry = new TextGeometry("+" + extraCreditAmount, { font: hubFont, size: 12, depth: -1 });
         extraCreditAmountMesh = new THREE.Mesh(extraCreditAmountGeometry, textMaterial);
-        extraCreditAmountMesh.position.set(window.innerWidth / -2 + 550, window.innerHeight / 2 - 35, -0.1);
+        extraCreditAmountMesh.position.set(uiCamera.left + 550, uiCamera.top - 35, -0.1);
         uiScene.add(extraCreditAmountMesh);
     }
 }
