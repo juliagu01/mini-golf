@@ -658,27 +658,41 @@ function startScreen(){
     startBall.receiveShadow = true;
     scene.add(startBall);
 
-    startBall.position.set(40, 40, 40);
+    startBall.position.set(40.4, 42, 38.5);
     camera.position.set(40, 40, 60); // Set the camera position higher
     camera.lookAt(new THREE.Vector3(40, 40, 0)); // Focus on the center of the scene
 
-    controls.target.set(40, 40, 40);
     controls.enabled = false;
 
     fontLoader.load("fonts/helvetiker_regular.typeface.json", (font)=>{
-        const textMaterials = new THREE.MeshStandardMaterial({color:0xfffffff});
+        const textMaterials = new THREE.MeshStandardMaterial({color:0xf0f0f0});
 
-        const topTextGeometry = new TextGeometry('Welcome to Mini Golf!', {
+        const topTextGeometry1 = new TextGeometry('Paper', {
             font: font,
-            size: 0.75,
-            depth: 1,
+            size: 2.3,
+            depth: 3,
             curveSegments: 12,
-          });
+        });
+        const topTextGeometry2 = new TextGeometry('Chase', {
+            font: font,
+            size: 2.3,
+            depth: 3,
+            curveSegments: 12,
+        });
       
-          const topTextMesh = new THREE.Mesh(topTextGeometry, textMaterials);
-          topTextGeometry.center(); // Center the text geometry
-          topTextMesh.position.set(40, 43, 40); // Position above the ball
-          scene.add(topTextMesh);
+        const topTextMesh1 = new THREE.Mesh(topTextGeometry1, textMaterials);
+        topTextGeometry1.center(); // Center the text geometry
+        topTextMesh1.position.set(40, 42, 37.5); // Position above the ball
+        scene.add(topTextMesh1);
+        topTextMesh1.castShadow = true;
+        topTextMesh1.receiveShadow = true;
+
+        const topTextMesh2 = new THREE.Mesh(topTextGeometry2, textMaterials);
+        topTextGeometry2.center(); // Center the text geometry
+        topTextMesh2.position.set(40, 39.25, 37.5); // Position above the ball
+        scene.add(topTextMesh2);
+        topTextMesh2.castShadow = true;
+        topTextMesh2.receiveShadow = true;
       
          
         window.addEventListener('click', () => {
@@ -696,7 +710,6 @@ function startScreen(){
                 //startBall.rotation.x += 0.01; // Adjust speed as needed
                 startBall.rotation.y += 0.01;
                 renderer.render(scene, camera);
-                controls.update();
             }
     }
 
