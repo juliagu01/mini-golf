@@ -142,7 +142,7 @@ ballIndicator.computeLineDistances();
 scene.add(ballIndicator);
 
 let holeCenter = new THREE.Vector3(0, 0, 0);
-const holeRadius = ballRadius + 0.4;
+const holeRadius = ballRadius + 0.5;
 let holeBounds = [];
 
 let table = new THREE.Mesh(createTableWithHole(0, 0, holeRadius), tableMaterial);
@@ -343,14 +343,20 @@ function loadLevel() {
     // Update table
     table.geometry = createTableWithHole(...(levelSpec.holePos), holeRadius)
     holeCenter = new THREE.Vector3(levelSpec.holePos[0], 0 - ballRadius, levelSpec.holePos[1]);
+    const holeDepthCenter = holeCenter.clone().sub(upVector);
     holeBounds = [{
-        object: { position: holeCenter },
-        simpleBound: new THREE.Box3().setFromCenterAndSize(holeCenter, new THREE.Vector3(
-            holeRadius + ballRadius + 0.001,
-            ballRadius + 0.001,
-            holeRadius + ballRadius + 0.001
+        object: { position: holeDepthCenter },
+        simpleBound: new THREE.Box3().setFromCenterAndSize(holeDepthCenter, new THREE.Vector3(
+            holeRadius + 0.001,
+            1.5,
+            holeRadius + 0.001
         ).multiplyScalar(2)),
-        bound: new THREE.TorusGeometry(holeRadius, ballRadius, 6, 12).rotateX(Math.PI / 2)
+        bound: new THREE.ExtrudeGeometry(table.geometry.parameters.shapes.holes[0], {
+            depth: -3,
+            bevelEnabled: true,
+            bevelThickness: 0 - ballRadius,
+            bevelSegments: 4
+        }).rotateX(Math.PI / 2).center()
     }];
 
     // Update boxes
@@ -697,7 +703,8 @@ function startScreen(){
          
         window.addEventListener('click', () => {
             scene.remove(startBall);
-            scene.remove(topTextMesh); 
+            scene.remove(topTextMesh1);
+            scene.remove(topTextMesh2);
             const pulseText = document.getElementById('pulse-text');
             if (pulseText) {
             pulseText.style.display = 'none';
