@@ -385,7 +385,7 @@ function restrictControls() {
 function loosenControls() {
     controls.enabled = true;
     controls.minPolarAngle = 0;
-    controls.maxPolarAngle = Math.PI;
+    controls.maxPolarAngle = Math.PI / 2;
     controls.minAzimuthAngle = Infinity;
     controls.maxAzimuthAngle = Infinity;
     controls.minDistance = 0;
@@ -411,6 +411,33 @@ let power = 0;  // 0-1
 // Launch iff space is pressed AND last launch has finished
 window.addEventListener('keydown', (event) => {
     if (gameStarted) {
+        if (event.code === 'KeyA' || event.code === 'KeyW' ||
+            event.code === 'KeyD' || event.code === 'KeyS' ||
+            event.code === 'ArrowUp' || event.code === 'ArrowDown') {
+            const polarAngle = controls.getPolarAngle();
+            const translation = new THREE.Vector3();
+            camera.getWorldDirection(translation);
+            if (event.code === 'KeyA')
+                translation.set(translation.z, 0, -translation.x);
+            if (event.code === 'KeyW')
+                translation.setY(0);
+            if (event.code === 'KeyD')
+                translation.set(translation.z, 0, -translation.x).multiplyScalar(-1);
+            if (event.code === 'KeyS')
+                translation.setY(0).multiplyScalar(-1);
+            if (event.code === 'ArrowUp')
+                translation.set(0, 1, 0);
+            if (event.code === 'ArrowDown' && camera.position.y > 1)
+                translation.set(0, -1, 0);
+            translation.normalize();
+            controls.target.add(translation);
+            camera.position.add(translation);
+            controls.minPolarAngle = polarAngle;
+            controls.maxPolarAngle = polarAngle;
+            controls.saveState();
+            controls.reset();
+            loosenControls();
+        }
         if (event.code === 'Space' && prepLaunch) {
             launchCount++;
             updateLaunchCountText();
@@ -587,7 +614,8 @@ function animate() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
 
-    controls.target.copy(ball.position);
+    if (!prepLaunch)
+        controls.target.copy(ball.position);
     controls.update();
     renderer.render(scene, camera);
 
