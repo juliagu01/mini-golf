@@ -2,15 +2,15 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
-import { levelSpecs } from './data.json';
 import { Sky } from 'three/addons/objects/Sky.js';
+
+import { levelSpecs } from './data.json';
+import { createTableWithHole, createRampGeometry, createBoxBound, createRampBound } from './objects.js';
+
 
 const startScene = new THREE.Scene()
 const startCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 startCamera.position.z = 5;
-
-
-
 
 
 const scene = new THREE.Scene();
@@ -79,7 +79,6 @@ const ball = new THREE.Mesh(new THREE.SphereGeometry(0.8 * ballRadius, 64, 32), 
 ball.castShadow = true;
 ball.position.y = -0.1;
 ball.receiveShadow = true;
-// ball.add(camera);
 scene.add(ball);
 
 sunlight.shadow.mapSize.width = 8192;
@@ -100,7 +99,7 @@ controls.enablePan = false; // Disable panning
 controls.autoRotate = false;
 controls.target.copy(ball.position);
 controls.enabled = true;
-controls.minDistance = 10;
+controls.minDistance = 25;
 controls.maxDistance = 25;
 
 const mapWidth = 17;
@@ -144,128 +143,9 @@ const obstacleMaterial = new THREE.MeshPhongMaterial({ color: 0xf0d0b0, shinines
 
 
 // Object modeling helper functions
-function createTableWithHole(holeX, holeY, holeRadius) {
-    const tableShape = new THREE.Shape();
-    tableShape.setFromPoints([
-        new THREE.Vector2(-16, -31),
-        new THREE.Vector2(16, -31),
-        new THREE.Vector2(16, 31),
-        new THREE.Vector2(-16, 31)
-    ]);
 
-    const holeShape = new THREE.Shape();
-    holeShape.absellipse(holeX, holeY, holeRadius, holeRadius, 0, 2 * Math.PI);
-    tableShape.holes.push(holeShape);
-    
-    return new THREE.ExtrudeGeometry(tableShape, { depth: 1, bevelEnabled: false });
-}
-
-
-// Custom ExtrudeGeometry for ramps
-function createRampGeometry(width, height, depth) {
-    let shape = new THREE.Shape([
-        new THREE.Vector2(0, 0),
-        new THREE.Vector2(0, height),
-        new THREE.Vector2(width, 0)
-    ]);
-    let geometry = new THREE.ExtrudeGeometry(shape, { depth: depth, bevelEnabled: false });
-    geometry.parameters.width = width;
-    geometry.parameters.height = height;
-    geometry.parameters.depth = depth;
-    geometry.center();
-    return geometry;
-}
-
-// Custom ExtrudeGeometry for box bounds
-// Credit: https://discourse.threejs.org/t/round-edged-box/1402
-function createRoundedBox(width, height, depth, radius0, smoothness) {
-    let shape = new THREE.Shape();
-    let eps = 0.00001;
-    let radius = radius0 - eps;
-    shape.absarc(eps, eps, eps, -Math.PI / 2, -Math.PI, true);
-    shape.absarc(eps, height, eps, Math.PI, Math.PI / 2, true);
-    shape.absarc(width, height, eps, Math.PI / 2, 0, true);
-    shape.absarc(width, eps, eps, 0, -Math.PI / 2, true);
-    let geometry = new THREE.ExtrudeGeometry(shape, {
-        depth: depth,
-        bevelEnabled: true,
-        bevelSegments: smoothness * 2,
-        steps: 1,
-        bevelSize: radius,
-        bevelThickness: radius0,
-        curveSegments: smoothness
-    });
-    geometry.center();
-    return geometry;
-}
-
-// Custom ExtrudeGeometry for ramp bounds
-function createRoundedRamp(width, height, depth, radius0, smoothness) {
-    let shape = new THREE.Shape();
-    let eps = 0.00001;
-    let radius = radius0 - eps;
-    let normalAngle = Math.PI / 2 - Math.atan2(height, width);
-    shape.absarc(eps, eps, eps, -Math.PI / 2, -Math.PI, true);
-    shape.absarc(eps, height, eps, Math.PI, normalAngle, true);
-    shape.absarc(width, eps, eps, normalAngle, -Math.PI / 2, true);
-    let geometry = new THREE.ExtrudeGeometry(shape, {
-        depth: depth,
-        bevelEnabled: true,
-        bevelSegments: smoothness * 2,
-        steps: 1,
-        bevelSize: radius,
-        bevelThickness: radius0,
-        curveSegments: smoothness
-    });
-    geometry.center();
-    return geometry;
-}
-
-// Manage array of boxes and box bounds
 let boxBounds = [];
-function createBoxBound(box, ball, boundsArr) {
-    const boxParams = box.geometry.parameters;
-    const ballParams = ball.geometry.parameters;
-
-    const simpleBound = new THREE.Box3().setFromCenterAndSize(box.position, new THREE.Vector3(
-        boxParams.width + ballParams.radius * 2,
-        boxParams.height + ballParams.radius * 2,
-        boxParams.depth + ballParams.radius * 2
-    ));
-
-    const bound = createRoundedBox(
-        boxParams.width,
-        boxParams.height,
-        boxParams.depth,
-        ballParams.radius,
-        1
-    );
-
-    boundsArr.push({ object: box, simpleBound: simpleBound, bound: bound });
-}
-
-// Manage array of ramps and ramp bounds
 let rampBounds = [];
-function createRampBound(ramp, ball, boundsArr) {
-    const rampParams = ramp.geometry.parameters;
-    const ballParams = ball.geometry.parameters;
-
-    const simpleBound = new THREE.Box3().setFromCenterAndSize(ramp.position, new THREE.Vector3(
-        rampParams.width + ballParams.radius * 2,
-        rampParams.height + ballParams.radius * 2,
-        rampParams.depth + ballParams.radius * 2
-    ));
-
-    const bound = createRoundedRamp(
-        rampParams.width,
-        rampParams.height,
-        rampParams.depth,
-        ballParams.radius,
-        1
-    );
-
-    boundsArr.push({ object: ramp, simpleBound: simpleBound, bound: bound });
-}
 
 
 // Create objects
@@ -275,21 +155,14 @@ let level = 1;
 
 
 const ballIndicatorGeometry = new THREE.BufferGeometry();
-ballIndicatorGeometry.setFromPoints([
-    new THREE.Vector3(0, 0, 0),
-    new THREE.Vector3(0, 0, -20)
-]);
-const ballIndicatorMaterial = new THREE.LineDashedMaterial({
-    color: 0x0000ff,
-    dashSize: 1,
-    gapSize: 0.5
-});
+ballIndicatorGeometry.setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -20)]);
+const ballIndicatorMaterial = new THREE.LineDashedMaterial({ color: 0x0000ff, dashSize: 1, gapSize: 0.5 });
 const ballIndicator = new THREE.Line(ballIndicatorGeometry, ballIndicatorMaterial);
 ballIndicator.computeLineDistances();
 scene.add(ballIndicator);
 
 let holeCenter = new THREE.Vector3(0, 0, 0);
-const holeRadius = 1.4;
+const holeRadius = ballRadius + 0.4;
 let holeBounds = [];
 
 let table = new THREE.Mesh(createTableWithHole(0, 0, holeRadius), tableMaterial);
@@ -356,16 +229,6 @@ function onWindowResize(){
 
 window.addEventListener('resize', onWindowResize);
 
-// // Resize listener for responsive positioning
-// window.addEventListener('resize', () => {
-//     uiCamera.left = -window.innerWidth / 2;
-//     uiCamera.right = window.innerWidth / 2;
-//     uiCamera.top = window.innerHeight / 2;
-//     uiCamera.bottom = -window.innerHeight / 2;
-//     uiCamera.updateProjectionMatrix();
-//     updatePowerBarPosition();
-// });
-
 
 // Create text geometry and material
 // Credit: https://github.com/mrdoob/three.js/blob/master/examples/webgl_geometry_text.html
@@ -378,11 +241,7 @@ let textSpecs = [
 const textMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
 function createHubText() {
     for (const { text, x } of textSpecs) {
-        const textGeometry = new TextGeometry(text, {
-            font: hubFont,
-            size: 12,
-            depth: -1
-        });
+        const textGeometry = new TextGeometry(text, { font: hubFont, size: 12, depth: -1 });
         const textMesh = new THREE.Mesh(textGeometry, textMaterial);
         textMesh.position.set(window.innerWidth / -2 + x, window.innerHeight / 2 - 35, -0.1);
         uiScene.add(textMesh);
@@ -400,11 +259,7 @@ function updateLevelNumText() {
     if (levelNumMesh)
         uiScene.remove(levelNumMesh);
     if (hubFont) {
-        const levelNumGeometry = new TextGeometry(level + "", {
-            font: hubFont,
-            size: 12,
-            depth: -1
-        });
+        const levelNumGeometry = new TextGeometry(level + "", { font: hubFont, size: 12, depth: -1 });
         levelNumMesh = new THREE.Mesh(levelNumGeometry, textMaterial);
         levelNumMesh.position.set(window.innerWidth / -2 + 75, window.innerHeight / 2 - 35, -0.1);
         uiScene.add(levelNumMesh);
@@ -418,11 +273,7 @@ function updateMaxLaunchCountText() {
     if (maxLaunchCountMesh)
         uiScene.remove(maxLaunchCountMesh);
     if (hubFont) {
-        const maxLaunchCountGeometry = new TextGeometry(levelSpecs[level - 1].maxLaunches + "", {
-            font: hubFont,
-            size: 12,
-            depth: -1
-        });
+        const maxLaunchCountGeometry = new TextGeometry(levelSpecs[level - 1].maxLaunches + "", { font: hubFont, size: 12, depth: -1 });
         maxLaunchCountMesh = new THREE.Mesh(maxLaunchCountGeometry, textMaterial);
         maxLaunchCountMesh.position.set(window.innerWidth / -2 + 250, window.innerHeight / 2 - 35, -0.1);
         uiScene.add(maxLaunchCountMesh);
@@ -436,11 +287,7 @@ function updateLaunchCountText() {
     if (launchCountMesh)
         uiScene.remove(launchCountMesh);
     if (hubFont) {
-        const launchCountGeometry = new TextGeometry(launchCount + "", {
-            font: hubFont,
-            size: 12,
-            depth: -1
-        });
+        const launchCountGeometry = new TextGeometry(launchCount + "", { font: hubFont, size: 12, depth: -1 });
         launchCountMesh = new THREE.Mesh(launchCountGeometry, textMaterial);
         launchCountMesh.position.set(window.innerWidth / -2 + 400, window.innerHeight / 2 - 35, -0.1);
         uiScene.add(launchCountMesh);
@@ -454,11 +301,7 @@ function updateExtraCreditAmountText() {
     if (extraCreditAmountMesh)
         uiScene.remove(extraCreditAmountMesh);
     if (hubFont) {
-        const extraCreditAmountGeometry = new TextGeometry("+" + extraCreditAmount, {
-            font: hubFont,
-            size: 12,
-            depth: -1
-        });
+        const extraCreditAmountGeometry = new TextGeometry("+" + extraCreditAmount, { font: hubFont, size: 12, depth: -1 });
         extraCreditAmountMesh = new THREE.Mesh(extraCreditAmountGeometry, textMaterial);
         extraCreditAmountMesh.position.set(window.innerWidth / -2 + 550, window.innerHeight / 2 - 35, -0.1);
         uiScene.add(extraCreditAmountMesh);

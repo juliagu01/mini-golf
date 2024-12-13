@@ -4,7 +4,11 @@
 		<meta charset="utf-8">
 		<title>Mini Golf</title>
 		<style>
-			#pulse-text {
+      body {
+        margin: 0;
+      }
+
+      #pulse-text {
 			position: absolute;
 			top: 75%; /* Adjust to position vertically */
 			left: 50%; /* Adjust to position horizontally */
@@ -31,10 +35,13 @@
 			}
 			}
 
+      canvas {
+        overflow: hidden;
+      }
 		</style>
 	</head>
 	<body>
-		<div id="pulse-text" class="pulse-text">Click anywhere to start!</div>
+		<div id="pulse-text" class="pulse-text">Click anywhere to start</div>
 		<script type="module" src="/main.js"></script>
 	</body>
 </html>
