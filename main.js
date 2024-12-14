@@ -498,7 +498,7 @@ window.addEventListener('keydown', (event) => {
 });
 
 
-
+let gameOver = false;
 const clock = new THREE.Clock();
 let pastPos = new THREE.Vector3();
 function animate() {
@@ -546,7 +546,7 @@ function animate() {
             // Check intersection with bound
             const indices = bound.getAttribute("position").array;
             for (let i = 0; i < indices.length; i += 9) {
-                const vertices = [];
+             const vertices = [];
                 vertices.push(new THREE.Vector3().fromArray(indices, i + 0).applyAxisAngle(upVector, object.rotation.y).add(object.position));
                 vertices.push(new THREE.Vector3().fromArray(indices, i + 3).applyAxisAngle(upVector, object.rotation.y).add(object.position));
                 vertices.push(new THREE.Vector3().fromArray(indices, i + 6).applyAxisAngle(upVector, object.rotation.y).add(object.position));
@@ -589,7 +589,7 @@ function animate() {
 
     // Check for floor collision
     checkFloorCollision();
-
+    
     // Ball in hole logic
     if (ball.position.y <= -3) {
         console.log(`level ${level} complete`);
@@ -598,16 +598,17 @@ function animate() {
         extraCreditAmount += (levelSpecs[level - 1].maxLaunches - launchCount);
         updateExtraCreditAmountText();
         // Increment level and load new level
-        if (level < levelSpecs.length) {
+        if (level < levelSpecs.length - 1) {
             level++;
             loadLevel();
         }
         // If no more levels, end the game
         else {
-            ball.visible = false;
-            ballIndicator.visible = false;
-            console.log("all levels complete");
-            return;
+            //ball.visible = false;
+            //ballIndicator.visible = false;
+            //console.log("all levels complete");
+            winScreen()
+    
         }
     }
 
@@ -638,6 +639,12 @@ function animate() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
+    
+    if  (gameOver){
+        if(!winText){
+            winScreen()
+        }
+    }
 
     if (!prepLaunch)
         controls.target.copy(ball.position);
@@ -738,4 +745,38 @@ document.addEventListener('click', function() {
     }
 })
 startScreen();
+if(gameover == true){
+    winScreen();
+}
+
+function winScreen(){
+    let winText;
+
+    camera.position.set(40, 40, 60); // Set the camera position higher
+    camera.lookAt(new THREE.Vector3(40, 40, 0)); // Focus on the center of the scene
+
+    controls.enabled = true;
+    const win = new FontLoader();
+    win.load("fonts/helvetiker_regular.typeface.json", (font) => {
+        const textMaterials = new THREE.MeshStandardMaterial({color:0x1060d0});
+        const textGeometry = new TextGeometry('You', {
+            font: font,
+            size: 2.3,
+            depth: 3,
+            curveSegments: 12,
+        })
+        const textGeometry2 = new TextGeometry('Win!', {
+            font: font,
+            size: 2.3,
+            depth: 3,
+            curveSegments: 12,
+        })
+        winText = new THREE.Mesh(textGeometry, textMaterials);
+        textGeometry.center();
+        winText.position.set(40, 42, 37.5)
+        scene.add(winText);
+        
+    })
+}
+
 
