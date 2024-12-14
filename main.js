@@ -5,7 +5,7 @@ import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
 import { Sky } from 'three/addons/objects/Sky.js';
 
 import { levelSpecs } from './data.json';
-import { createTableWithHole, createRampGeometry, createBoxBound, createRampBound } from './objects.js';
+import { createTableWithHole, createRampGeometry, createBoxBound, createRampBound, createHoleBound } from './objects.js';
 
 
 
@@ -143,7 +143,6 @@ scene.add(ballIndicator);
 
 let holeCenter = new THREE.Vector3(0, 0, 0);
 const holeRadius = ballRadius + 0.5;
-let holeBounds = [];
 
 let table = new THREE.Mesh(createTableWithHole(0, 0, holeRadius), tableMaterial);
 table.position.y = 0 - ballRadius;
@@ -164,7 +163,10 @@ for (const { dims, pos } of tableEdgeSpecs) {
     edge.receiveShadow = true;
     edge.position.set(...pos);
     scene.add(edge);
-    createBoxBound(edge, ball, tableEdgeBounds);
+
+    const edgeBound = createBoxBound(edge, ball, tableEdgeBounds);
+    edgeBound.translate(...(edge.position.toArray()));
+    edgeBound.computeBoundingBox();
 }
 
 let wallSpecs = [
@@ -318,6 +320,7 @@ let launchCount = 0;
 let extraCreditAmount = 0;
 let boxBounds = [];
 let rampBounds = [];
+let holeBounds = [];
 
 
 // Restore states on level start and restart
@@ -341,24 +344,11 @@ function loadLevel() {
     const levelSpec = levelSpecs[level - 1];
 
     // Update table
-    table.geometry = createTableWithHole(...(levelSpec.holePos), holeRadius)
+    table.geometry = createTableWithHole(...(levelSpec.holePos), holeRadius);
     holeCenter = new THREE.Vector3(levelSpec.holePos[0], 0 - ballRadius, levelSpec.holePos[1]);
-    const holeDepthCenter = holeCenter.clone().sub(upVector);
-    holeBounds = [{
-        object: {
-            position: holeDepthCenter, rotation: new THREE.Euler() },
-        simpleBound: new THREE.Box3().setFromCenterAndSize(holeDepthCenter, new THREE.Vector3(
-            holeRadius + 0.001,
-            1.5,
-            holeRadius + 0.001
-        ).multiplyScalar(2)),
-        bound: new THREE.ExtrudeGeometry(table.geometry.parameters.shapes.holes[0], {
-            depth: -3,
-            bevelEnabled: true,
-            bevelThickness: 0 - ballRadius,
-            bevelSegments: 4
-        }).rotateX(Math.PI / 2).center()
-    }];
+    const holeBound = createHoleBound(table, ball, holeBounds);
+    holeBound.translate(holeCenter.x, 0 - ballRadius * 2, holeCenter.z);
+    holeBound.computeBoundingBox();
 
     // Update boxes
     for (const { object } of boxBounds)
@@ -371,7 +361,11 @@ function loadLevel() {
         box.castShadow = true;
         box.receiveShadow = true;
         scene.add(box);
-        createBoxBound(box, ball, boxBounds);
+
+        const boxBound = createBoxBound(box, ball, boxBounds);
+        boxBound.rotateY(rotation * Math.PI / 180);
+        boxBound.translate(...(box.position.toArray()));
+        boxBound.computeBoundingBox();
     }
 
     // Update ramps
@@ -385,7 +379,11 @@ function loadLevel() {
         ramp.castShadow = true;
         ramp.receiveShadow = true;
         scene.add(ramp);
-        createRampBound(ramp, ball, rampBounds);
+
+        const rampBound = createRampBound(ramp, ball, rampBounds);
+        rampBound.rotateY(rotation * Math.PI / 180);
+        rampBound.translate(...(ramp.position.toArray()));
+        rampBound.computeBoundingBox();
     }
 
     updateLevelNumText();
@@ -492,7 +490,7 @@ window.addEventListener('keydown', (event) => {
         if (event.code === 'KeyR')
             resetLevel();
         if (event.code === 'KeyP') {
-            console.log(ball.position);
+            console.log(rampBounds[0].bound.boundingBox);
         }
     }
 });
@@ -537,19 +535,19 @@ function animate() {
     // Manual raytracing for collision detection
     const ray = new THREE.Ray(pastPos).lookAt(ball.position);
     let closestIntersection = null;
-    for (const { object, simpleBound, bound } of tableEdgeBounds.concat(boxBounds).concat(rampBounds).concat(holeBounds)) {
+    for (const { bound } of tableEdgeBounds.concat(boxBounds).concat(rampBounds).concat(holeBounds)) {
         // Check intersection with simple bound
-        const simpleOverlap = simpleBound.containsPoint(pastPos);
+        const simpleOverlap = bound.boundingBox.containsPoint(pastPos);
         const simpleIntersection = new THREE.Vector3();
-        ray.intersectBox(simpleBound, simpleIntersection);
+        ray.intersectBox(bound.boundingBox, simpleIntersection);
         if (simpleOverlap || simpleIntersection?.distanceTo(pastPos) < ballVelocity.length()) {
             // Check intersection with bound
             const indices = bound.getAttribute("position").array;
             for (let i = 0; i < indices.length; i += 9) {
                 const vertices = [];
-                vertices.push(new THREE.Vector3().fromArray(indices, i + 0).applyAxisAngle(upVector, object.rotation.y).add(object.position));
-                vertices.push(new THREE.Vector3().fromArray(indices, i + 3).applyAxisAngle(upVector, object.rotation.y).add(object.position));
-                vertices.push(new THREE.Vector3().fromArray(indices, i + 6).applyAxisAngle(upVector, object.rotation.y).add(object.position));
+                vertices.push(new THREE.Vector3().fromArray(indices, i + 0));
+                vertices.push(new THREE.Vector3().fromArray(indices, i + 3));
+                vertices.push(new THREE.Vector3().fromArray(indices, i + 6));
 
                 const intersection = new THREE.Vector3();
                 if (ray.intersectTriangle(...vertices, true, intersection)) {
@@ -673,20 +671,10 @@ function startScreen(){
     controls.enabled = false;
 
     fontLoader.load("fonts/helvetiker_regular.typeface.json", (font)=>{
-        const textMaterials = new THREE.MeshStandardMaterial({color:0x1060d0});
+        const textMaterials = new THREE.MeshStandardMaterial({color:0x1050d0});
 
-        const topTextGeometry1 = new TextGeometry('Paper', {
-            font: font,
-            size: 2.3,
-            depth: 3,
-            curveSegments: 12,
-        });
-        const topTextGeometry2 = new TextGeometry('Chase', {
-            font: font,
-            size: 2.3,
-            depth: 3,
-            curveSegments: 12,
-        });
+        const topTextGeometry1 = new TextGeometry('Paper', { font: font, size: 2.3, depth: 2, curveSegments: 12 });
+        const topTextGeometry2 = new TextGeometry('Chase', { font: font, size: 2.3, depth: 2, curveSegments: 12 });
       
         const topTextMesh1 = new THREE.Mesh(topTextGeometry1, textMaterials);
         topTextGeometry1.center(); // Center the text geometry

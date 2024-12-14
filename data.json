@@ -7,13 +7,15 @@
             "boxes": [
                 {
                     "dims": [ 4, 2, 4 ],
-                    "pos": [ 4, 0, 4 ]
+                    "pos": [ 4, 0, 4 ],
+                    "rotation": 0
                 }
             ],
             "ramps": [
                 {
                     "dims": [ 4, 2, 4 ],
-                    "pos": [ 4, 0, -4 ]
+                    "pos": [ 4, 0, -4 ],
+                    "rotation": 20
                 }
             ]
         },
@@ -21,8 +23,20 @@
             "ballPos": [ 5, 0, 20 ],
             "holePos": [ -10, -20 ],
             "maxLaunches": 3,
-            "boxes": [],
-            "ramps": []
+            "boxes": [
+                {
+                    "dims": [ 4, 2, 4 ],
+                    "pos": [ 4, 0, 4 ],
+                    "rotation": 0
+                }
+            ],
+            "ramps": [
+                {
+                    "dims": [ 4, 2, 4 ],
+                    "pos": [ 4, 0, -4 ],
+                    "rotation": 20
+                }
+            ]
         }
     ]
 }
