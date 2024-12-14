@@ -23,6 +23,7 @@ document.body.appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableZoom = false; // Disable zooming
 controls.autoRotate = false;
+let idealCameraAngle = 0;
 
 
 //sky
@@ -404,6 +405,8 @@ function restrictControls() {
     controls.saveState();
     controls.reset();
     controls.enabled = false;
+
+    idealCameraAngle = controls.minAzimuthAngle;
 }
 
 function loosenControls() {
@@ -499,6 +502,7 @@ window.addEventListener('keydown', (event) => {
 
 const clock = new THREE.Clock();
 let pastPos = new THREE.Vector3();
+const blendingFactor = 0.4;
 function animate() {
     requestAnimationFrame(animate);
 
@@ -578,11 +582,9 @@ function animate() {
         // Update camera
         const flattenedVelocity = ballVelocity.clone();
         flattenedVelocity.y = 0;
-        let cameraAngle = flattenedVelocity.angleTo(forwardVector);
+        idealCameraAngle = flattenedVelocity.angleTo(forwardVector);
         if (forwardVector.clone().cross(flattenedVelocity).dot(upVector) < 0)
-            cameraAngle *= -1;
-        controls.minAzimuthAngle = cameraAngle;
-        controls.maxAzimuthAngle = cameraAngle;
+            idealCameraAngle *= -1;
     }
 
     // Check for floor collision
@@ -637,6 +639,8 @@ function animate() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
 
+    controls.minAzimuthAngle = controls.minAzimuthAngle * (1 - blendingFactor) + idealCameraAngle * blendingFactor;
+    controls.maxAzimuthAngle = controls.minAzimuthAngle;
     if (!prepLaunch)
         controls.target.copy(ball.position);
     controls.update();
