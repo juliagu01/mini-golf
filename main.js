@@ -75,7 +75,7 @@ const ballMaterial = new THREE.MeshPhysicalMaterial({
     bumpScale: 2,
     displacementMap: dmapBall,
     displacementScale: 5,
-    displacementBias: -2.65
+    displacementBias: -2.6
 });
 const ballRadius = 1;
 
@@ -591,7 +591,7 @@ function animate() {
     checkFloorCollision();
     
     // Ball in hole logic
-    if (ball.position.y <= -3) {
+    if (ball.position.y <= -.5) {
         console.log(`level ${level} complete`);
         ballVelocity.set(0, 0, 0);
         // If launches remain, add as extra credit
@@ -607,7 +607,15 @@ function animate() {
             //ball.visible = false;
             //ballIndicator.visible = false;
             //console.log("all levels complete");
-            winScreen()
+            for (const { object } of boxBounds)
+                scene.remove(object);
+            for (const { object } of rampBounds)
+                scene.remove(object);
+            for (const { object } of tableEdgeBounds)
+                scene.remove(object);
+            scene.remove(ball);
+            scene.remove(table);
+            winScreen();
     
         }
     }
@@ -731,17 +739,19 @@ document.addEventListener('click', function() {
     }
 })
 startScreen();
-if(gameover == true){
-    winScreen();
-}
+
 
 function winScreen(){
     let winText;
 
-    camera.position.set(40, 40, 60); // Set the camera position higher
+    const light = new THREE.AmbientLight(0xffffff, 1);
+    scene.add(light);
+    camera.position.set(40, 40, 30); // Set the camera position higher
+    console.log(camera.position);
     camera.lookAt(new THREE.Vector3(40, 40, 0)); // Focus on the center of the scene
-
+    
     controls.enabled = true;
+    
     const win = new FontLoader();
     win.load("fonts/helvetiker_regular.typeface.json", (font) => {
         const textMaterials = new THREE.MeshStandardMaterial({color:0x1060d0});
@@ -761,7 +771,9 @@ function winScreen(){
         textGeometry.center();
         winText.position.set(40, 42, 37.5)
         scene.add(winText);
-        
+        controls.target.copy(winText)
+        renderer.render(scene, camera);
+        console.log(camera.position)
     })
 }
 
