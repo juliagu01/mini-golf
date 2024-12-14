@@ -1,6 +1,7 @@
 {
     "levelSpecs": [
         {
+            "description": "Level 1",
             "ballPos": [ 0, 0, 20 ],
             "holePos": [ 0, -20 ],
             "maxLaunches": 7,
@@ -61,10 +62,17 @@
                     "dims": [ 2, 0.5, 4 ],
                     "pos": [ 0, -0.75, -11 ],
                     "rotation": -90
+                },
+                {
+                    "dims": [ 2, 0.5, 4 ],
+                    "pos": [ 0, -0.75, -15 ],
+                    "rotation": 90
                 }
             ]
         },
+
         {
+            "description": "Level 2",
             "ballPos": [ -5, 0, 15 ],
             "holePos": [ 0, -20 ],
             "maxLaunches": 5,
@@ -111,6 +119,67 @@
                 }
             ],
             "ramps": []
+        },
+
+        {
+            "description": "Win!",
+            "ballPos": [ -5, 0, 15 ],
+            "holePos": [ 0, -10 ],
+            "maxLaunches": 5,
+            "boxes": [
+                {
+                    "dims": [ 15, 1, 15 ],
+                    "pos": [ 0, -0.5, -10 ],
+                    "rotation": 0
+                },
+                {
+                    "dims": [ 13, 1, 13 ],
+                    "pos": [ 0, 0.5, -10 ],
+                    "rotation": 0
+                },
+                {
+                    "dims": [ 1, 3, 1.5 ],
+                    "pos": [ -1.5, 0.5, 0 ],
+                    "rotation": 0
+                },
+                {
+                    "dims": [ 1, 3, 1.5 ],
+                    "pos": [ 1.5, 0.5, 0 ],
+                    "rotation": 0
+                },
+                {
+                    "dims": [ 4, 1, 1.5 ],
+                    "pos": [ 0, 2.5, 0 ],
+                    "rotation": 0
+                },
+                {
+                    "dims": [ 1, 2, 1.5 ],
+                    "pos": [ -1.5, 4, 0 ],
+                    "rotation": 0
+                },
+                {
+                    "dims": [ 1, 2, 1.5 ],
+                    "pos": [ 1.5, 4, 0 ],
+                    "rotation": 0
+                },
+                {
+                    "dims": [ 4, 1, 1.5 ],
+                    "pos": [ 0, 5.5, 0 ],
+                    "rotation": 0
+                }
+            ],
+            "ramps": [
+                {
+                    "dims": [ 2, 2, 1.5 ],
+                    "pos": [ -1, 7, 0 ],
+                    "rotation": 180
+                },
+                {
+                    "dims": [ 2, 2, 1.5 ],
+                    "pos": [ 1, 7, 0 ],
+                    "rotation": 0
+                }
+            ]
         }
     ]
 }
