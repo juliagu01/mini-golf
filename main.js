@@ -192,15 +192,17 @@ const uiCamera = new THREE.OrthographicCamera(
     0.1, 10
 );
 
+const hubY = 25;
+const hubTextY = hubY + 5;
 const hubContentZ = -0.1;
 
-const hubBackgroundGeometry = new THREE.PlaneGeometry(window.innerWidth, 60);
+const hubBackgroundGeometry = new THREE.PlaneGeometry(window.innerWidth, hubY * 2);
 const hubBackgroundMaterial = new THREE.MeshBasicMaterial({ color: 0x1050d0 });
 hubBackgroundMaterial.transparent = true;
-hubBackgroundMaterial.opacity = 0.5;
+hubBackgroundMaterial.opacity = 0.8;
 const hubBackgroundMesh = new THREE.Mesh(hubBackgroundGeometry, hubBackgroundMaterial);
 uiScene.add(hubBackgroundMesh);
-hubBackgroundMesh.position.set(0, uiCamera.top - 30, -1);
+hubBackgroundMesh.position.set(0, uiCamera.top - hubY, -1);
 
 // Create the power bar geometry and material
 const powerBarGeometry = new THREE.PlaneGeometry(150, 20); // Width and height of the bar
@@ -209,7 +211,7 @@ const powerBarMesh = new THREE.Mesh(powerBarGeometry, powerBarMaterial);
 uiScene.add(powerBarMesh);
 
 // Position the power bar in the top-right corner
-powerBarMesh.position.set(uiCamera.right - 100, uiCamera.top - 30, hubContentZ); // Position slightly inside from the edge
+powerBarMesh.position.set(uiCamera.right - 100, uiCamera.top - hubY, hubContentZ); // Position slightly inside from the edge
 // //Debug command to see if powerbar is created
 // console.log(uiScene.children)
 
@@ -225,14 +227,14 @@ function onWindowResize(){
     uiCamera.updateProjectionMatrix();
 
     hubBackgroundMesh.geometry.width = window.innerWidth;
-    hubBackgroundMesh.position.y = uiCamera.top - 30;
+    hubBackgroundMesh.position.y = uiCamera.top - hubY;
     for (const { mesh, x } of textMeshes)
-        mesh.position.set(uiCamera.left + x, uiCamera.top - 35, hubContentZ);
-    levelNumMesh.position.set(uiCamera.left + 75, uiCamera.top - 35, hubContentZ);
-    maxLaunchCountMesh.position.set(uiCamera.left + 250, uiCamera.top - 35, hubContentZ);
-    launchCountMesh.position.set(uiCamera.left + 400, uiCamera.top - 35, hubContentZ);
-    extraCreditAmountMesh.position.set(uiCamera.left + 550, uiCamera.top - 35, hubContentZ);
-    powerBarMesh.position.set(uiCamera.right - 100, uiCamera.top - 30, hubContentZ);
+        mesh.position.set(uiCamera.left + x, uiCamera.top - hubTextY, hubContentZ);
+    levelNumMesh.position.set(uiCamera.left + 75, uiCamera.top - hubTextY, hubContentZ);
+    maxLaunchCountMesh.position.set(uiCamera.left + 250, uiCamera.top - hubTextY, hubContentZ);
+    launchCountMesh.position.set(uiCamera.left + 400, uiCamera.top - hubTextY, hubContentZ);
+    extraCreditAmountMesh.position.set(uiCamera.left + 550, uiCamera.top - hubTextY, hubContentZ);
+    powerBarMesh.position.set(uiCamera.right - 100, uiCamera.top - hubY, hubContentZ);
 }
 
 window.addEventListener('resize', onWindowResize);
@@ -252,7 +254,7 @@ function createHubText() {
     for (const { text, x } of textSpecs) {
         const textGeometry = new TextGeometry(text, { font: hubFont, size: 12, depth: -0.1 });
         const textMesh = new THREE.Mesh(textGeometry, textMaterial);
-        textMesh.position.set(uiCamera.left + x, uiCamera.top - 35, hubContentZ);
+        textMesh.position.set(uiCamera.left + x, uiCamera.top - hubTextY, hubContentZ);
         textMeshes.push({ mesh: textMesh, x: x });
         uiScene.add(textMesh);
     }
@@ -271,7 +273,7 @@ function updateLevelNumText() {
     if (hubFont) {
         const levelNumGeometry = new TextGeometry(level + "", { font: hubFont, size: 12, depth: -0.1 });
         levelNumMesh = new THREE.Mesh(levelNumGeometry, textMaterial);
-        levelNumMesh.position.set(uiCamera.left + 75, uiCamera.top - 35, hubContentZ);
+        levelNumMesh.position.set(uiCamera.left + 75, uiCamera.top - hubTextY, hubContentZ);
         uiScene.add(levelNumMesh);
     }
 }
@@ -285,7 +287,7 @@ function updateMaxLaunchCountText() {
     if (hubFont) {
         const maxLaunchCountGeometry = new TextGeometry(levelSpecs[level - 1].maxLaunches + "", { font: hubFont, size: 12, depth: -0.1 });
         maxLaunchCountMesh = new THREE.Mesh(maxLaunchCountGeometry, textMaterial);
-        maxLaunchCountMesh.position.set(uiCamera.left + 250, uiCamera.top - 35, hubContentZ);
+        maxLaunchCountMesh.position.set(uiCamera.left + 250, uiCamera.top - hubTextY, hubContentZ);
         uiScene.add(maxLaunchCountMesh);
     }
 }
@@ -298,7 +300,7 @@ function updateLaunchCountText() {
     if (hubFont) {
         const launchCountGeometry = new TextGeometry(launchCount + "", { font: hubFont, size: 12, depth: -0.1 });
         launchCountMesh = new THREE.Mesh(launchCountGeometry, textMaterial);
-        launchCountMesh.position.set(uiCamera.left + 400, uiCamera.top - 35, hubContentZ);
+        launchCountMesh.position.set(uiCamera.left + 400, uiCamera.top - hubTextY, hubContentZ);
         uiScene.add(launchCountMesh);
     }
 }
@@ -311,7 +313,7 @@ function updateExtraCreditAmountText() {
     if (hubFont) {
         const extraCreditAmountGeometry = new TextGeometry("+" + extraCreditAmount, { font: hubFont, size: 12, depth: -0.1 });
         extraCreditAmountMesh = new THREE.Mesh(extraCreditAmountGeometry, textMaterial);
-        extraCreditAmountMesh.position.set(uiCamera.left + 550, uiCamera.top - 35, hubContentZ);
+        extraCreditAmountMesh.position.set(uiCamera.left + 550, uiCamera.top - hubTextY, hubContentZ);
         uiScene.add(extraCreditAmountMesh);
     }
 }
