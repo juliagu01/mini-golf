@@ -242,6 +242,21 @@
         },
 
         {
+            "description": "5: Going for a Spin",
+            "ballPos": [ 0, 6, 5 ],
+            "holePos": [ -0.985, -0.95 ],
+            "maxLaunches": 3,
+            "boxes": [],
+            "ramps": [
+                {
+                    "dims": [ 2, 2, 2 ],
+                    "pos": [ 0, 0, 6.1 ],
+                    "rotation": 90
+                }
+            ]
+        },
+
+        {
             "description": "Win!",
             "ballPos": [ -5, 0, 15 ],
             "holePos": [ 0, -10 ],

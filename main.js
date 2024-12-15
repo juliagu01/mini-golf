@@ -442,7 +442,7 @@ function applyForce(force) {
   // Function to handle collisions with the floor
 function checkFloorCollision() {
     const projectedHoleCenter = new THREE.Vector3(holeCenter.x, ball.position.y, holeCenter.z);
-    if (ball.position.distanceTo(projectedHoleCenter) > holeRadius && ball.position.y <= 0) {
+    if (ball.position.distanceTo(projectedHoleCenter) > holeRadius - 0.001 && ball.position.y <= 0) {
         ball.position.y = 0;
         ballVelocity.y *= -1 * bounceCoefficient; // Bounce with energy loss
     }
