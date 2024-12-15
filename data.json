@@ -129,7 +129,82 @@
             ],
             "ramps": []
         },
-        
+
+        {
+            "description": "3: Disarray",
+            "ballPos": [ 0, 0, 20 ],
+            "holePos": [ 0, -20 ],
+            "maxLaunches": 10,
+            "boxes": [],
+            "ramps": [
+                {
+                    "dims": [ 3, 3, 3 ],
+                    "pos": [ -10, 0.5, -10 ],
+                    "rotation": -135
+                },
+                {
+                    "dims": [ 3, 3, 3 ],
+                    "pos": [ 0, 0.5, -10 ],
+                    "rotation": -135
+                },
+                {
+                    "dims": [ 3, 3, 3 ],
+                    "pos": [ 10, 0.5, -10 ],
+                    "rotation": -135
+                },
+                {
+                    "dims": [ 3, 3, 3 ],
+                    "pos": [ -5, 0.5, -5 ],
+                    "rotation": -45
+                },
+                {
+                    "dims": [ 3, 3, 3 ],
+                    "pos": [ 5, 0.5, -5 ],
+                    "rotation": -45
+                },
+                {
+                    "dims": [ 3, 3, 3 ],
+                    "pos": [ -10, 0.5, 0 ],
+                    "rotation": -135
+                },
+                {
+                    "dims": [ 3, 3, 3 ],
+                    "pos": [ 0, 0.5, 0 ],
+                    "rotation": -135
+                },
+                {
+                    "dims": [ 3, 3, 3 ],
+                    "pos": [ 10, 0.5, 0 ],
+                    "rotation": -135
+                },
+                {
+                    "dims": [ 3, 3, 3 ],
+                    "pos": [ -5, 0.5, 5 ],
+                    "rotation": -45
+                },
+                {
+                    "dims": [ 3, 3, 3 ],
+                    "pos": [ 5, 0.5, 5 ],
+                    "rotation": -45
+                },
+                {
+                    "dims": [ 3, 3, 3 ],
+                    "pos": [ -10, 0.5, 10 ],
+                    "rotation": -135
+                },
+                {
+                    "dims": [ 3, 3, 3 ],
+                    "pos": [ 0, 0.5, 10 ],
+                    "rotation": -135
+                },
+                {
+                    "dims": [ 3, 3, 3 ],
+                    "pos": [ 10, 0.5, 10 ],
+                    "rotation": -135
+                }
+            ]
+        },
+
         {
             "description": "Win!",
             "ballPos": [ -5, 0, 15 ],
