@@ -1,126 +1,135 @@
 {
     "levelSpecs": [
         {
-            "description": "Level 1",
-            "ballPos": [ 0, 0, 20 ],
-            "holePos": [ 0, -20 ],
-            "maxLaunches": 7,
-            "boxes": [
-                {
-                    "dims": [ 4, 0.5, 2 ],
-                    "pos": [ 0, -0.75, 11 ],
-                    "rotation": 0
-                },
-                {
-                    "dims": [ 4, 0.5, 2 ],
-                    "pos": [ 0, -0.75, 3 ],
-                    "rotation": 0
-                },
-                {
-                    "dims": [ 4, 0.5, 2 ],
-                    "pos": [ 0, -0.75, -5 ],
-                    "rotation": 0
-                },
-                {
-                    "dims": [ 4, 0.5, 2 ],
-                    "pos": [ 0, -0.75, -13 ],
-                    "rotation": 0
-                }
-            ],
-            "ramps": [
-                {
-                    "dims": [ 2, 0.5, 4 ],
-                    "pos": [ 0, -0.75, 13 ],
-                    "rotation": -90
-                },
-                {
-                    "dims": [ 2, 0.5, 4 ],
-                    "pos": [ 0, -0.75, 9 ],
-                    "rotation": 90
-                },
-                {
-                    "dims": [ 2, 0.5, 4 ],
-                    "pos": [ 0, -0.75, 5 ],
-                    "rotation": -90
-                },
-                {
-                    "dims": [ 2, 0.5, 4 ],
-                    "pos": [ 0, -0.75, 1 ],
-                    "rotation": 90
-                },
-                {
-                    "dims": [ 2, 0.5, 4 ],
-                    "pos": [ 0, -0.75, -3 ],
-                    "rotation": -90
-                },
-                {
-                    "dims": [ 2, 0.5, 4 ],
-                    "pos": [ 0, -0.75, -7 ],
-                    "rotation": 90
-                },
-                {
-                    "dims": [ 2, 0.5, 4 ],
-                    "pos": [ 0, -0.75, -11 ],
-                    "rotation": -90
-                },
-                {
-                    "dims": [ 2, 0.5, 4 ],
-                    "pos": [ 0, -0.75, -15 ],
-                    "rotation": 90
-                }
-            ]
+            "description": "1: Just the Hole",
+            "ballPos": [ 5, 0, 5 ],
+            "holePos": [ -5, -5 ],
+            "maxLaunches": 3,
+            "boxes": [],
+            "ramps": []
         },
 
         {
-            "description": "Level 2",
-            "ballPos": [ -5, 0, 15 ],
-            "holePos": [ 0, -20 ],
+            "description": "2: Zigs and Zags",
+            "ballPos": [ 0, 0, 12 ],
+            "holePos": [ 0, -12 ],
             "maxLaunches": 5,
             "boxes": [
                 {
                     "dims": [ 2, 2, 4 ],
-                    "pos": [ -5, 0, -18 ],
+                    "pos": [ -4, 0, -10 ],
                     "rotation": 0
                 },
                 {
                     "dims": [ 2, 2, 4 ],
-                    "pos": [ 5, 0, -14 ],
+                    "pos": [ 4, 0, -6 ],
                     "rotation": 0
                 },
                 {
                     "dims": [ 2, 2, 4 ],
-                    "pos": [ -5, 0, -10 ],
+                    "pos": [ -4, 0, -2 ],
                     "rotation": 0
                 },
                 {
                     "dims": [ 2, 2, 4 ],
-                    "pos": [ 5, 0, -6 ],
+                    "pos": [ 4, 0, 2 ],
                     "rotation": 0
                 },
                 {
                     "dims": [ 2, 2, 4 ],
-                    "pos": [ -5, 0, -2 ],
+                    "pos": [ -4, 0, 6 ],
                     "rotation": 0
                 },
                 {
                     "dims": [ 2, 2, 4 ],
-                    "pos": [ 5, 0, 2 ],
+                    "pos": [ 4, 0, 10 ],
                     "rotation": 0
                 },
+
                 {
-                    "dims": [ 2, 2, 4 ],
-                    "pos": [ -5, 0, 6 ],
-                    "rotation": 0
+                    "dims": [ 7, 2, 2 ],
+                    "pos": [ 1.8, 0, 13.8 ],
+                    "rotation": 45
                 },
                 {
-                    "dims": [ 2, 2, 4 ],
-                    "pos": [ 5, 0, 10 ],
-                    "rotation": 0
+                    "dims": [ 7, 2, 2 ],
+                    "pos": [ -1.8, 0, 13.8 ],
+                    "rotation": -45
+                },
+                {
+                    "dims": [ 4.8, 2, 2 ],
+                    "pos": [ -2.6, 0, 11 ],
+                    "rotation": 45
+                },
+                {
+                    "dims": [ 4.8, 2, 2 ],
+                    "pos": [ -2.6, 0, 9 ],
+                    "rotation": -45
+                },
+                {
+                    "dims": [ 4.8, 2, 2 ],
+                    "pos": [ 2.6, 0, 7 ],
+                    "rotation": -45
+                },
+                {
+                    "dims": [ 4.8, 2, 2 ],
+                    "pos": [ 2.6, 0, 5 ],
+                    "rotation": 45
+                },
+                {
+                    "dims": [ 4.8, 2, 2 ],
+                    "pos": [ -2.6, 0, 3 ],
+                    "rotation": 45
+                },
+                {
+                    "dims": [ 4.8, 2, 2 ],
+                    "pos": [ -2.6, 0, 1 ],
+                    "rotation": -45
+                },
+                {
+                    "dims": [ 4.8, 2, 2 ],
+                    "pos": [ 2.6, 0, -1 ],
+                    "rotation": -45
+                },
+                {
+                    "dims": [ 4.8, 2, 2 ],
+                    "pos": [ 2.6, 0, -3 ],
+                    "rotation": 45
+                },
+                {
+                    "dims": [ 4.8, 2, 2 ],
+                    "pos": [ -2.6, 0, -5 ],
+                    "rotation": 45
+                },
+                {
+                    "dims": [ 4.8, 2, 2 ],
+                    "pos": [ -2.6, 0, -7 ],
+                    "rotation": -45
+                },
+                {
+                    "dims": [ 4.8, 2, 2 ],
+                    "pos": [ 2.6, 0, -9 ],
+                    "rotation": -45
+                },
+                {
+                    "dims": [ 4.8, 2, 2 ],
+                    "pos": [ 2.6, 0, -11 ],
+                    "rotation": 45
+                },
+                {
+                    "dims": [ 7, 2, 2 ],
+                    "pos": [ 1.8, 0, -13.8 ],
+                    "rotation": -45
+                },
+                {
+                    "dims": [ 7, 2, 2 ],
+                    "pos": [ -1.8, 0, -13.8 ],
+                    "rotation": 45
                 }
             ],
             "ramps": []
         },
-
+        
         {
             "description": "Win!",
             "ballPos": [ -5, 0, 15 ],
