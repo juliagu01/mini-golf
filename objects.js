@@ -120,15 +120,16 @@ function createRampBound(ramp, ball, boundsArr) {
 }
 
 function createHoleBound(table, ball, boundsArr) {
+    const eps = 0.00001;
     const ballRadius = ball.geometry.parameters.radius;
     const hole = table.geometry.parameters.shapes.holes[0];
 
     const object = { position: new THREE.Vector3(hole.curves[0].aX, 0 - ballRadius * 2, hole.curves[0].aY) };
 
     const bound = new THREE.ExtrudeGeometry(hole, {
-        depth: 0 - table.geometry.parameters.options.depth + ballRadius * 2,
+        depth: 0 - ballRadius * 4 + eps * 2,
         bevelEnabled: true,
-        bevelThickness: 0 - ballRadius,
+        bevelThickness: 0 - ballRadius + eps,
         bevelSegments: 6
     });
     bound.rotateX(Math.PI / 2);

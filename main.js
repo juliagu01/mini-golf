@@ -192,14 +192,24 @@ const uiCamera = new THREE.OrthographicCamera(
     0.1, 10
 );
 
+const hubContentZ = -0.1;
+
+const hubBackgroundGeometry = new THREE.PlaneGeometry(window.innerWidth, 60);
+const hubBackgroundMaterial = new THREE.MeshBasicMaterial({ color: 0x1050d0 });
+hubBackgroundMaterial.transparent = true;
+hubBackgroundMaterial.opacity = 0.5;
+const hubBackgroundMesh = new THREE.Mesh(hubBackgroundGeometry, hubBackgroundMaterial);
+uiScene.add(hubBackgroundMesh);
+hubBackgroundMesh.position.set(0, uiCamera.top - 30, -1);
+
 // Create the power bar geometry and material
 const powerBarGeometry = new THREE.PlaneGeometry(150, 20); // Width and height of the bar
-const powerBarMaterial = new THREE.MeshBasicMaterial({color: 0xff0000});
+const powerBarMaterial = new THREE.MeshBasicMaterial({color: 0x1050d0});
 const powerBarMesh = new THREE.Mesh(powerBarGeometry, powerBarMaterial);
 uiScene.add(powerBarMesh);
 
 // Position the power bar in the top-right corner
-powerBarMesh.position.set(uiCamera.right - 100, uiCamera.top - 30, -0.1); // Position slightly inside from the edge
+powerBarMesh.position.set(uiCamera.right - 100, uiCamera.top - 30, hubContentZ); // Position slightly inside from the edge
 // //Debug command to see if powerbar is created
 // console.log(uiScene.children)
 
@@ -214,13 +224,15 @@ function onWindowResize(){
     uiCamera.bottom = -window.innerHeight / 2;
     uiCamera.updateProjectionMatrix();
 
+    hubBackgroundMesh.geometry.width = window.innerWidth;
+    hubBackgroundMesh.position.y = uiCamera.top - 30;
     for (const { mesh, x } of textMeshes)
-        mesh.position.set(uiCamera.left + x, uiCamera.top - 35, -0.1);
-    levelNumMesh.position.set(uiCamera.left + 75, uiCamera.top - 35, -0.1);
-    maxLaunchCountMesh.position.set(uiCamera.left + 250, uiCamera.top - 35, -0.1);
-    launchCountMesh.position.set(uiCamera.left + 400, uiCamera.top - 35, -0.1);
-    extraCreditAmountMesh.position.set(uiCamera.left + 550, uiCamera.top - 35, -0.1);
-    powerBarMesh.position.set(uiCamera.right - 100, uiCamera.top - 30, -0.1);
+        mesh.position.set(uiCamera.left + x, uiCamera.top - 35, hubContentZ);
+    levelNumMesh.position.set(uiCamera.left + 75, uiCamera.top - 35, hubContentZ);
+    maxLaunchCountMesh.position.set(uiCamera.left + 250, uiCamera.top - 35, hubContentZ);
+    launchCountMesh.position.set(uiCamera.left + 400, uiCamera.top - 35, hubContentZ);
+    extraCreditAmountMesh.position.set(uiCamera.left + 550, uiCamera.top - 35, hubContentZ);
+    powerBarMesh.position.set(uiCamera.right - 100, uiCamera.top - 30, hubContentZ);
 }
 
 window.addEventListener('resize', onWindowResize);
@@ -238,9 +250,9 @@ let textSpecs = [
 const textMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
 function createHubText() {
     for (const { text, x } of textSpecs) {
-        const textGeometry = new TextGeometry(text, { font: hubFont, size: 12, depth: -1 });
+        const textGeometry = new TextGeometry(text, { font: hubFont, size: 12, depth: -0.1 });
         const textMesh = new THREE.Mesh(textGeometry, textMaterial);
-        textMesh.position.set(uiCamera.left + x, uiCamera.top - 35, -0.1);
+        textMesh.position.set(uiCamera.left + x, uiCamera.top - 35, hubContentZ);
         textMeshes.push({ mesh: textMesh, x: x });
         uiScene.add(textMesh);
     }
@@ -257,9 +269,9 @@ function updateLevelNumText() {
     if (levelNumMesh)
         uiScene.remove(levelNumMesh);
     if (hubFont) {
-        const levelNumGeometry = new TextGeometry(level + "", { font: hubFont, size: 12, depth: -1 });
+        const levelNumGeometry = new TextGeometry(level + "", { font: hubFont, size: 12, depth: -0.1 });
         levelNumMesh = new THREE.Mesh(levelNumGeometry, textMaterial);
-        levelNumMesh.position.set(uiCamera.left + 75, uiCamera.top - 35, -0.1);
+        levelNumMesh.position.set(uiCamera.left + 75, uiCamera.top - 35, hubContentZ);
         uiScene.add(levelNumMesh);
     }
 }
@@ -271,9 +283,9 @@ function updateMaxLaunchCountText() {
     if (maxLaunchCountMesh)
         uiScene.remove(maxLaunchCountMesh);
     if (hubFont) {
-        const maxLaunchCountGeometry = new TextGeometry(levelSpecs[level - 1].maxLaunches + "", { font: hubFont, size: 12, depth: -1 });
+        const maxLaunchCountGeometry = new TextGeometry(levelSpecs[level - 1].maxLaunches + "", { font: hubFont, size: 12, depth: -0.1 });
         maxLaunchCountMesh = new THREE.Mesh(maxLaunchCountGeometry, textMaterial);
-        maxLaunchCountMesh.position.set(uiCamera.left + 250, uiCamera.top - 35, -0.1);
+        maxLaunchCountMesh.position.set(uiCamera.left + 250, uiCamera.top - 35, hubContentZ);
         uiScene.add(maxLaunchCountMesh);
     }
 }
@@ -284,9 +296,9 @@ function updateLaunchCountText() {
     if (launchCountMesh)
         uiScene.remove(launchCountMesh);
     if (hubFont) {
-        const launchCountGeometry = new TextGeometry(launchCount + "", { font: hubFont, size: 12, depth: -1 });
+        const launchCountGeometry = new TextGeometry(launchCount + "", { font: hubFont, size: 12, depth: -0.1 });
         launchCountMesh = new THREE.Mesh(launchCountGeometry, textMaterial);
-        launchCountMesh.position.set(uiCamera.left + 400, uiCamera.top - 35, -0.1);
+        launchCountMesh.position.set(uiCamera.left + 400, uiCamera.top - 35, hubContentZ);
         uiScene.add(launchCountMesh);
     }
 }
@@ -297,9 +309,9 @@ function updateExtraCreditAmountText() {
     if (extraCreditAmountMesh)
         uiScene.remove(extraCreditAmountMesh);
     if (hubFont) {
-        const extraCreditAmountGeometry = new TextGeometry("+" + extraCreditAmount, { font: hubFont, size: 12, depth: -1 });
+        const extraCreditAmountGeometry = new TextGeometry("+" + extraCreditAmount, { font: hubFont, size: 12, depth: -0.1 });
         extraCreditAmountMesh = new THREE.Mesh(extraCreditAmountGeometry, textMaterial);
-        extraCreditAmountMesh.position.set(uiCamera.left + 550, uiCamera.top - 35, -0.1);
+        extraCreditAmountMesh.position.set(uiCamera.left + 550, uiCamera.top - 35, hubContentZ);
         uiScene.add(extraCreditAmountMesh);
     }
 }
@@ -348,7 +360,7 @@ function loadLevel() {
     table.geometry = createTableWithHole(...(levelSpec.holePos), holeRadius);
     holeCenter = new THREE.Vector3(levelSpec.holePos[0], 0 - ballRadius, levelSpec.holePos[1]);
     const holeBound = createHoleBound(table, ball, holeBounds);
-    holeBound.translate(holeCenter.x, 0 - ballRadius * 2, holeCenter.z);
+    holeBound.translate(holeCenter.x, 0 - ballRadius * 3, holeCenter.z);
     holeBound.computeBoundingBox();
 
     // Update boxes
