@@ -1,7 +1,8 @@
 {
     "levelSpecs": [
         {
-            "description": "1: Just the Hole",
+            "title": "1:  Just the Hole",
+            "titleWidth":  100,
             "ballPos": [ 5, 0, 5 ],
             "holePos": [ -5, -5 ],
             "maxLaunches": 3,
@@ -10,7 +11,8 @@
         },
 
         {
-            "description": "2: Zigs and Zags",
+            "title": "2:  Zigs and Zags",
+            "titleWidth": 105,
             "ballPos": [ 0, 0, 12 ],
             "holePos": [ 0, -12 ],
             "maxLaunches": 5,
@@ -131,10 +133,11 @@
         },
 
         {
-            "description": "3: Disarray",
+            "title": "3:  Disarray",
+            "titleWidth": 65,
             "ballPos": [ 0, 0, 20 ],
             "holePos": [ 0, -20 ],
-            "maxLaunches": 10,
+            "maxLaunches": 9,
             "boxes": [],
             "ramps": [
                 {
@@ -206,7 +209,8 @@
         },
 
         {
-            "description": "4: Catapult!",
+            "title": "4:  Catapult!",
+            "titleWidth": 75,
             "ballPos": [ 0, 0, 5 ],
             "holePos": [ 0, -10 ],
             "maxLaunches": 3,
@@ -242,7 +246,8 @@
         },
 
         {
-            "description": "5: Going for a Spin",
+            "title": "5:  Going for a Spin",
+            "titleWidth": 120,
             "ballPos": [ 0, 6, 5 ],
             "holePos": [ -0.985, -0.95 ],
             "maxLaunches": 3,
@@ -257,7 +262,8 @@
         },
 
         {
-            "description": "Win!",
+            "title": "6:  Win!",
+            "titleWidth": 40,
             "ballPos": [ -5, 0, 15 ],
             "holePos": [ 0, -10 ],
             "maxLaunches": 5,

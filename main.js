@@ -226,11 +226,11 @@ function onWindowResize(){
     uiCamera.bottom = -window.innerHeight / 2;
     uiCamera.updateProjectionMatrix();
 
-    hubBackgroundMesh.geometry.width = window.innerWidth;
+    hubBackgroundMesh.geometry.parameters.width = window.innerWidth;
     hubBackgroundMesh.position.y = uiCamera.top - hubY;
     for (const { mesh, x } of textMeshes)
         mesh.position.set(uiCamera.left + x, uiCamera.top - hubTextY, hubContentZ);
-    levelNumMesh.position.set(uiCamera.left + 75, uiCamera.top - hubTextY, hubContentZ);
+    levelNumMesh.position.set(uiCamera.left + 70, uiCamera.top - hubTextY, hubContentZ);
     maxLaunchCountMesh.position.set(uiCamera.left + 250, uiCamera.top - hubTextY, hubContentZ);
     launchCountMesh.position.set(uiCamera.left + 400, uiCamera.top - hubTextY, hubContentZ);
     extraCreditAmountMesh.position.set(uiCamera.left + 550, uiCamera.top - hubTextY, hubContentZ);
@@ -243,6 +243,7 @@ window.addEventListener('resize', onWindowResize);
 // Create text geometry and material
 // Credit: https://github.com/mrdoob/three.js/blob/master/examples/webgl_geometry_text.html
 const textMeshes = [];
+let levelTitleWidth = 0;
 let textSpecs = [
     { text: "Level", x: 25 },
     { text: "Max launches:", x: 125 },
@@ -251,13 +252,19 @@ let textSpecs = [
 ];
 const textMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
 function createHubText() {
+    levelTitleWidth = levelSpecs[level - 1].titleWidth;
+
     for (const { text, x } of textSpecs) {
         const textGeometry = new TextGeometry(text, { font: hubFont, size: 12, depth: -0.1 });
         const textMesh = new THREE.Mesh(textGeometry, textMaterial);
-        textMesh.position.set(uiCamera.left + x, uiCamera.top - hubTextY, hubContentZ);
+        if (text === "Level")
+            textMesh.position.set(uiCamera.left + x, uiCamera.top - hubTextY, hubContentZ);
+        else
+            textMesh.position.set(uiCamera.left + levelTitleWidth + x, uiCamera.top - hubTextY, hubContentZ);
         textMeshes.push({ mesh: textMesh, x: x });
         uiScene.add(textMesh);
     }
+
     updateLevelNumText();
     updateMaxLaunchCountText();
     updateLaunchCountText();
@@ -271,9 +278,9 @@ function updateLevelNumText() {
     if (levelNumMesh)
         uiScene.remove(levelNumMesh);
     if (hubFont) {
-        const levelNumGeometry = new TextGeometry(level + "", { font: hubFont, size: 12, depth: -0.1 });
+        const levelNumGeometry = new TextGeometry(levelSpecs[level - 1].title, { font: hubFont, size: 12, depth: -0.1 });
         levelNumMesh = new THREE.Mesh(levelNumGeometry, textMaterial);
-        levelNumMesh.position.set(uiCamera.left + 75, uiCamera.top - hubTextY, hubContentZ);
+        levelNumMesh.position.set(uiCamera.left + 70, uiCamera.top - hubTextY, hubContentZ);
         uiScene.add(levelNumMesh);
     }
 }
@@ -287,7 +294,7 @@ function updateMaxLaunchCountText() {
     if (hubFont) {
         const maxLaunchCountGeometry = new TextGeometry(levelSpecs[level - 1].maxLaunches + "", { font: hubFont, size: 12, depth: -0.1 });
         maxLaunchCountMesh = new THREE.Mesh(maxLaunchCountGeometry, textMaterial);
-        maxLaunchCountMesh.position.set(uiCamera.left + 250, uiCamera.top - hubTextY, hubContentZ);
+        maxLaunchCountMesh.position.set(uiCamera.left + levelTitleWidth + 250, uiCamera.top - hubTextY, hubContentZ);
         uiScene.add(maxLaunchCountMesh);
     }
 }
@@ -300,7 +307,7 @@ function updateLaunchCountText() {
     if (hubFont) {
         const launchCountGeometry = new TextGeometry(launchCount + "", { font: hubFont, size: 12, depth: -0.1 });
         launchCountMesh = new THREE.Mesh(launchCountGeometry, textMaterial);
-        launchCountMesh.position.set(uiCamera.left + 400, uiCamera.top - hubTextY, hubContentZ);
+        launchCountMesh.position.set(uiCamera.left + levelTitleWidth + 400, uiCamera.top - hubTextY, hubContentZ);
         uiScene.add(launchCountMesh);
     }
 }
@@ -313,7 +320,7 @@ function updateExtraCreditAmountText() {
     if (hubFont) {
         const extraCreditAmountGeometry = new TextGeometry("+" + extraCreditAmount, { font: hubFont, size: 12, depth: -0.1 });
         extraCreditAmountMesh = new THREE.Mesh(extraCreditAmountGeometry, textMaterial);
-        extraCreditAmountMesh.position.set(uiCamera.left + 550, uiCamera.top - hubTextY, hubContentZ);
+        extraCreditAmountMesh.position.set(uiCamera.left + levelTitleWidth + 550, uiCamera.top - hubTextY, hubContentZ);
         uiScene.add(extraCreditAmountMesh);
     }
 }
@@ -401,6 +408,7 @@ function loadLevel() {
         rampBound.computeBoundingBox();
     }
 
+    // Update text
     updateLevelNumText();
     updateMaxLaunchCountText();
 }
