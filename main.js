@@ -364,6 +364,7 @@ function resetLevel() {
 
     launchCount = 0;
     updateLaunchCountText();
+    repositionHubText();
 
     restrictControls();
     loosenControls();
